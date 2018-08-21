@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.kumuluz.ee.rest-client-mp</groupId>
-    <artifactId>rest-client-mp</artifactId>
+    <groupId>com.kumuluz.ee.rest-client</groupId>
+    <artifactId>kumuluzee-rest-client</artifactId>
     <version>1.0.1</version>
 
     <name>KumuluzEE Microprofile Rest Client</name>
@@ -16,6 +16,10 @@
     <packaging>jar</packaging>
 
     <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
         <kumuluzee.version>2.5.3</kumuluzee.version>
         <microprofile.rest-client.version>1.0.1</microprofile.rest-client.version>
         <microprofile.config.version>1.2.1</microprofile.config.version>
@@ -25,12 +29,13 @@
         <hamcrest.version>1.3</hamcrest.version>
         <testng.version>6.9.9</testng.version>
         <kumuluzee-arquillian-container.version>1.0.0</kumuluzee-arquillian-container.version>
+        <wiremock.version>2.10.1</wiremock.version>
+
+        <surefire.plugin.version>2.20.1</surefire.plugin.version>
+        <wiremock.plugin.version>2.7.0</wiremock.plugin.version>
         <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
         <nexus.staging.plugin.version>1.6.8</nexus.staging.plugin.version>
         <gpg.plugin.version>1.6</gpg.plugin.version>
-        <surefire.plugin.version>2.20.1</surefire.plugin.version>
-        <wiremock.version>2.10.1</wiremock.version>
-        <wiremock.plugin.version>2.7.0</wiremock.plugin.version>
     </properties>
 
     <issueManagement>
@@ -171,27 +176,6 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>com.kumuluz.ee</groupId>
-                <artifactId>kumuluzee-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>package</id>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>uk.co.deliverymind</groupId>
                 <artifactId>wiremock-maven-plugin</artifactId>
                 <version>${wiremock.plugin.version}</version>
@@ -210,6 +194,30 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>deploy</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${gpg.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
     <repositories>
         <repository>
