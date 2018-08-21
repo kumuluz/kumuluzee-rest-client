@@ -37,7 +37,7 @@ public class MicroprofileRestClientExtension implements Extension {
 	
 	@Override
 	public void load() {
-		LOG.info("initializing Microprofile Rest Client 1.0");
+		LOG.info("initializing Microprofile Rest Client 1.0.1");
 	}
 	
 	@Override
