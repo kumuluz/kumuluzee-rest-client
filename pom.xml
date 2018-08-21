@@ -38,11 +38,39 @@
         <gpg.plugin.version>1.6</gpg.plugin.version>
     </properties>
 
+    <scm>
+        <connection>scm:git:git@github.com:kumuluz/kumuluzee-rest-client.git</connection>
+        <developerConnection>scm:git:git@github.com:kumuluz/kumuluzee-rest-client.git</developerConnection>
+        <url>git@github.com:kumuluz/kumuluzee-rest-client.git</url>
+    </scm>
+
     <issueManagement>
         <system>GitHub Issues</system>
         <url>https://github.com/kumuluz/kumuluzee-rest-client/issues</url>
     </issueManagement>
 
+    <developers>
+        <developer>
+            <name>Tilen Faganel</name>
+            <id>tfaga</id>
+            <email>tilen.faganel@me.com</email>
+            <url>https://github.com/TFaga</url>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+        </license>
+    </licenses>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <dependencyManagement>
         <dependencies>
@@ -214,36 +242,19 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+                        <groupId>uk.co.deliverymind</groupId>
+                        <artifactId>wiremock-maven-plugin</artifactId>
+                        <version>${wiremock.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
     </profiles>
-
-    <repositories>
-        <repository>
-            <id>sonatype-snapshots</id>
-            <name>Sonatype Snapshots</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>sonatype-snapshots</id>
-            <name>Sonatype Snapshots</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
 
 </project>
