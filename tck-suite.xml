@@ -3,8 +3,7 @@
 <suite name="microprofile-rest-client-TCK" verbose="2" configfailurepolicy="continue" >
     <test name="microprofile-rest-client TCK">
         <packages>
-            <!--<package name="org.eclipse.microprofile.rest.client.tck.*"/>-->
-            <package name="org.eclipse.microprofile.rest.client.tck.cditests.*"/>
+            <package name="org.eclipse.microprofile.rest.client.tck.*"/>
         </packages>
         <classes>
             <class name="org.eclipse.microprofile.rest.client.tck.AdditionalRegistrationTest">
@@ -13,30 +12,17 @@
                     <exclude name="shouldRegisterAMultiTypedProviderInstance"/>
                 </methods>
             </class>
-            <class name="org.eclipse.microprofile.rest.client.tck.BeanParamTest"/>
-            <class name="org.eclipse.microprofile.rest.client.tck.CallMultipleMappersTest"/>
-            <class name="org.eclipse.microprofile.rest.client.tck.CustomHttpMethodTest"/>
-            <class name="org.eclipse.microprofile.rest.client.tck.DefaultExceptionMapperConfigTest"/>
             <class name="org.eclipse.microprofile.rest.client.tck.DefaultExceptionMapperTest">
                 <methods>
                     <exclude name="testPropagationOfResponseDetailsFromDefaultMapper"/>
                 </methods>
             </class>
-            <class name="org.eclipse.microprofile.rest.client.tck.ExceptionMapperTest"/>
             <class name="org.eclipse.microprofile.rest.client.tck.FeatureRegistrationTest">
                 <methods>
                     <exclude name="testFeatureRegistrationViaBuilder"/>
                     <exclude name="testFeatureRegistrationViaCDI"/>
                 </methods>
             </class>
-            <class name="org.eclipse.microprofile.rest.client.tck.InheritanceTest"/>
-            <class name="org.eclipse.microprofile.rest.client.tck.InvalidInterfaceTest"/>
-            <class name="org.eclipse.microprofile.rest.client.tck.InvokeSimpleGetOperationTest"/>
-            <class name="org.eclipse.microprofile.rest.client.tck.InvokeWithBuiltProvidersTest"/>
-            <!--<class name="org.eclipse.microprofile.rest.client.tck.InvokeWithJsonPProviderTest"/>-->
-            <class name="org.eclipse.microprofile.rest.client.tck.InvokeWithRegisteredProvidersTest"/>
-            <class name="org.eclipse.microprofile.rest.client.tck.MultiRegisteredTest"/>
-            <class name="org.eclipse.microprofile.rest.client.tck.ProvidesRestClientBuilderTest"/>
             <class name="org.eclipse.microprofile.rest.client.tck.SubResourceTest">
                 <methods>
                     <exclude name="canInvokeMethodOnSubResourceInterface"/>

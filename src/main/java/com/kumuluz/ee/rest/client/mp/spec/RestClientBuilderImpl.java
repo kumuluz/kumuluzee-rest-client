@@ -20,6 +20,7 @@
  */
 package com.kumuluz.ee.rest.client.mp.spec;
 
+import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.rest.client.mp.invoker.LocalProviderInfo;
 import com.kumuluz.ee.rest.client.mp.invoker.RestClientInvoker;
 import com.kumuluz.ee.rest.client.mp.proxy.RestClientProxyFactory;
@@ -78,8 +79,19 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 		InterfaceValidatorUtil.validateApiInterface(apiClass);
 		
 		RestClientProxyFactory proxyFactory = RestClientProxyFactory.getInstance();
+
+		if (!isRunningInContainer()) {
+			// fixes exception in InvokeWithJsonPProviderTest, which happens when @BeforeTest gets executed on client
+			// see: https://developer.jboss.org/thread/198706
+			// CDI BeanManager is not accessible outside container and getBeanManager throws exception
+			// this shouldn't be a problem because Rest Client cannot be used without KumuluzEE
+			// if running TCK, this log message should be ignored
+			LOG.severe("Rest Client is running outside container, build method cannot be used.");
+			return null;
+		}
+
 		beanManager = CDI.current().getBeanManager();
-		
+
 		Class<T> proxyClass = proxyFactory.getProxyClass(beanManager, apiClass);
 		Method[] delegateMethods = proxyFactory.getDelegateMethods(apiClass);
 		
@@ -255,12 +267,22 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 	}
 	
 	private void registerLocalProviderInstance(Object provider, int priority) {
-		for (LocalProviderInfo registered : localProviderInstances) {
-			if (registered.getLocalProvider().equals(provider)) {
-				LOG.warning("Provider already registered! " + provider.getClass().getName());
-				return;
-			}
+		if (localProviderInstances.stream().map(LocalProviderInfo::getLocalProvider).anyMatch(provider::equals)) {
+			LOG.warning("Provider already registered! " + provider.getClass().getName());
+			return;
 		}
+
 		localProviderInstances.add(new LocalProviderInfo(provider, priority));
+	}
+
+	@SuppressWarnings("ResultOfMethodCallIgnored")
+	private boolean isRunningInContainer() {
+		try {
+			ConfigurationUtil.getInstance();
+		} catch (IllegalStateException e) {
+			return false;
+		}
+
+		return true;
 	}
 }
