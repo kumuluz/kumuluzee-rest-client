@@ -23,11 +23,6 @@
                     <exclude name="testFeatureRegistrationViaCDI"/>
                 </methods>
             </class>
-            <class name="org.eclipse.microprofile.rest.client.tck.SubResourceTest">
-                <methods>
-                    <exclude name="canInvokeMethodOnSubResourceInterface"/>
-                </methods>
-            </class>
         </classes>
     </test>
 </suite>

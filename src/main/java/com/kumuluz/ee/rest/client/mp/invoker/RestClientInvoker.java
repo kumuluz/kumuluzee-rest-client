@@ -71,7 +71,7 @@ public class RestClientInvoker implements InvocationHandler {
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		
 		StringBuilder serverURL = determineEndpointUrl(method);
-		// ce ima subresource vrni zbildan restclient iz returntype
+		// if subresource exists, return RestClient for subresource type
 		if (isSubResource(method.getReturnType())) {
 			Class subresourceType = method.getReturnType();
 			if (subresourceType.isAnnotationPresent(Path.class)) {
@@ -79,7 +79,13 @@ public class RestClientInvoker implements InvocationHandler {
 				addPathValue(serverURL, subResourcePathAnnotation);
 			}
 			String subresourceURL = serverURL.toString();
-			return RestClientBuilder.newBuilder()
+
+			RestClientBuilder builder = RestClientBuilder.newBuilder();
+
+			client.getConfiguration().getInstances().forEach(builder::register);
+			client.getConfiguration().getProperties().forEach(builder::property);
+
+			return builder
 				.baseUrl(new URL(subresourceURL))
 				.build(method.getReturnType());
 		}
@@ -100,7 +106,7 @@ public class RestClientInvoker implements InvocationHandler {
 		
 		
 		Invocation.Builder request = client.target(url).request().headers(paramInfo.getHeaderValues());
-		
+
 		for (Map.Entry<String, Object> entry : paramInfo.getCookieParameterValues().entrySet()) {
 			request = request.cookie(entry.getKey(), (String) entry.getValue());
 		}
