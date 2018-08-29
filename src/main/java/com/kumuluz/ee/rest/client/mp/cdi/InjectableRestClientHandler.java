@@ -20,8 +20,7 @@
  */
 package com.kumuluz.ee.rest.client.mp.cdi;
 
-import com.kumuluz.ee.rest.client.mp.util.ProviderRegistrationUtil;
-import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
 
 import javax.enterprise.context.Dependent;
 import java.lang.reflect.InvocationHandler;
@@ -37,19 +36,23 @@ import java.util.Map;
 @Dependent
 public class InjectableRestClientHandler implements InvocationHandler {
 	
-	private Map<Class, Object> restClientInvokerCache = new HashMap<>();
+	private static Map<Class, Object> restClientInvokerCache = new HashMap<>();
+	private static Map<Class, RestClientDefinitionException> restClientInvokerExceptions = new HashMap<>();
 	
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		Object restClientInvoker = restClientInvokerCache.get(method.getDeclaringClass());
 		
 		if (restClientInvoker == null) {
-			RestClientBuilder restClientBuilder = RestClientBuilder.newBuilder();
-			
-			ProviderRegistrationUtil.registerProviders(restClientBuilder, method);
-			
-			restClientInvoker = restClientBuilder.build(method.getDeclaringClass());
-			restClientInvokerCache.put(method.getDeclaringClass(), restClientInvoker);
+
+			RestClientDefinitionException ex = restClientInvokerExceptions.get(method.getDeclaringClass());
+
+			if (ex == null) {
+				throw new RuntimeException("CDI invoker not found for method " + method.toString() + " of class " +
+						method.getDeclaringClass());
+			}
+
+			throw new RuntimeException("Exception occurred when initializing rest client", ex);
 		}
 		
 		try {
@@ -61,5 +64,13 @@ public class InjectableRestClientHandler implements InvocationHandler {
 			}
 			throw cause;
 		}
+	}
+
+	static void addRestClientInvoker(Class c, Object o) {
+		restClientInvokerCache.put(c, o);
+	}
+
+	static void addRestClientInvokerException(Class c, RestClientDefinitionException ex) {
+		restClientInvokerExceptions.put(c, ex);
 	}
 }

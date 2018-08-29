@@ -19,8 +19,8 @@
             </class>
             <class name="org.eclipse.microprofile.rest.client.tck.FeatureRegistrationTest">
                 <methods>
+                    <!-- this test is fixed in MP Rest Client 1.1 spec -->
                     <exclude name="testFeatureRegistrationViaBuilder"/>
-                    <exclude name="testFeatureRegistrationViaCDI"/>
                 </methods>
             </class>
         </classes>

@@ -20,12 +20,15 @@
  */
 package com.kumuluz.ee.rest.client.mp.cdi;
 
+import com.kumuluz.ee.rest.client.mp.util.ProviderRegistrationUtil;
 import org.apache.deltaspike.core.api.literal.AnyLiteral;
 import org.apache.deltaspike.core.api.literal.DefaultLiteral;
 import org.apache.deltaspike.core.util.bean.BeanBuilder;
 import org.apache.deltaspike.partialbean.impl.PartialBeanProxyFactory;
 import org.apache.deltaspike.proxy.api.DeltaSpikeProxyContextualLifecycle;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
@@ -59,7 +62,7 @@ public class RestClientExtension implements Extension {
 		this.addAnnotatedType(anType.getAnnotatedType());
 		anType.veto();
 	}
-	
+
 	public <T> void afterBean(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager) {
 		for (AnnotatedType anType : this.classes) {
 			DeltaSpikeProxyContextualLifecycle lifecycle = new DeltaSpikeProxyContextualLifecycle(
@@ -81,13 +84,29 @@ public class RestClientExtension implements Extension {
 			afterBeanDiscovery.addBean(beanBuilder.create());
 		}
 	}
-	
-	private void addAnnotatedType(AnnotatedType annotatedType) {
-		for(AnnotatedType anType : classes) {
-			if (anType.getJavaClass().equals(annotatedType.getJavaClass())) {
-				return;
+
+	public void afterDeploymentValidation(@Observes AfterDeploymentValidation event) {
+		for (AnnotatedType anType : this.classes) {
+			try {
+				// create invoker and add it to cache
+				RestClientBuilder restClientBuilder = RestClientBuilder.newBuilder();
+
+				ProviderRegistrationUtil.registerProviders(restClientBuilder, anType.getJavaClass());
+
+				Object restClientInvoker = restClientBuilder.build(anType.getJavaClass());
+				InjectableRestClientHandler.addRestClientInvoker(anType.getJavaClass(), restClientInvoker);
+			} catch (Exception e) {
+				InjectableRestClientHandler.addRestClientInvokerException(anType.getJavaClass(),
+						new RestClientDefinitionException(e));
 			}
 		}
+	}
+
+	private void addAnnotatedType(AnnotatedType annotatedType) {
+		if (this.classes.stream().map(AnnotatedType::getJavaClass).anyMatch(annotatedType.getJavaClass()::equals)) {
+			return;
+		}
+
 		this.classes.add(annotatedType);
 	}
 	

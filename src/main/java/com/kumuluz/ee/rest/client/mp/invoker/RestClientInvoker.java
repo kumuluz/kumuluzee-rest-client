@@ -63,6 +63,14 @@ public class RestClientInvoker implements InvocationHandler {
 	
 	public RestClientInvoker(Client client, String baseURI, List<LocalProviderInfo> localProviderInstances) {
 		this.client = client;
+
+		// Jersey uses lazy initialization for Feature configuration, MP spec requires Features to be configured
+        // at registration. This call forces Jersey to initialize Features
+		try {
+            this.client.target("/").request().buildGet();
+        } catch (Exception ignored) {
+        }
+
 		this.baseURI = baseURI;
 		this.localProviderInstances = localProviderInstances;
 	}
