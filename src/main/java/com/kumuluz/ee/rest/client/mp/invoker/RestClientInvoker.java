@@ -21,7 +21,6 @@
 package com.kumuluz.ee.rest.client.mp.invoker;
 
 import com.kumuluz.ee.rest.client.mp.util.BeanParamProcessorUtil;
-import com.kumuluz.ee.rest.client.mp.util.ProviderRegistrationUtil;
 import org.eclipse.jetty.client.HttpResponseException;
 import org.eclipse.jetty.http.HttpField;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
@@ -36,10 +35,7 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.ResponseProcessingException;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.*;
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
 import java.io.StringReader;
@@ -48,9 +44,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Miha Jamsek
@@ -109,7 +104,7 @@ public class RestClientInvoker implements InvocationHandler {
 		}
 		
 		Map<String, Object> pathParams = paramInfo.getPathParameterValues();
-		replacePathParamParameters(pathParams);
+		replacePathParamParameters(client, pathParams);
 		String url = uriBuilder.buildFromMap(pathParams).toString();
 		
 		
@@ -172,14 +167,41 @@ public class RestClientInvoker implements InvocationHandler {
 		return result;
 	}
 	
-	private void replacePathParamParameters(Map<String, Object> pathParams) {
-		List<ParamConverterProvider> providers = ProviderRegistrationUtil.getParamConverterProviders();
+	private void replacePathParamParameters(Client client, Map<String, Object> pathParams) {
+		List<ParamConverterProvider> providers = getParamConverterProviders(client);
 		for(String pathParamKey : pathParams.keySet()) {
 			for(ParamConverterProvider provider : providers) {
 				ParamConverter converter = provider.getConverter(String.class, Object.class, new Annotation[]{});
 				pathParams.put(pathParamKey, converter.toString(pathParams.get(pathParamKey)));
 			}
 		}
+	}
+
+	private List<ParamConverterProvider> getParamConverterProviders(Client client) {
+		Configuration conf = client.getConfiguration();
+		List<LocalProviderInfo> ls = new ArrayList<>();
+
+		for (Object provider : conf.getInstances()) {
+			Integer priority = conf.getContracts(provider.getClass()).get(ParamConverterProvider.class);
+			if (priority != null) {
+				ls.add(new LocalProviderInfo(provider, priority));
+			}
+		}
+
+		for (Class providerClass : conf.getClasses()) {
+			Integer priority = conf.getContracts(providerClass).get(ParamConverterProvider.class);
+			if (priority != null) {
+				try {
+					ls.add(new LocalProviderInfo(providerClass.newInstance(), priority));
+				} catch (InstantiationException | IllegalAccessException e) {
+					throw new RuntimeException("Failed to create new instance of ParamConverterProvider " +
+							providerClass, e);
+				}
+			}
+		}
+
+		return ls.stream().sorted(Comparator.comparingInt(LocalProviderInfo::getPriority))
+				.map(lpi -> (ParamConverterProvider)lpi.getLocalProvider()).collect(Collectors.toList());
 	}
 	
 	private Response getResponseFromHttpResponseException(HttpResponseException ex) {

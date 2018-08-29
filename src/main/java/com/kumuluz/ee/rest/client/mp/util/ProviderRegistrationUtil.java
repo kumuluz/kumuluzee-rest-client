@@ -26,25 +26,12 @@ import org.eclipse.microprofile.rest.client.annotation.RegisterProviders;
 
 import javax.annotation.Priority;
 import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.ext.ParamConverterProvider;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Miha Jamsek
  */
 public class ProviderRegistrationUtil {
-	
-	private static List<ParamConverterProvider> paramConverterProviders = new ArrayList<>();
-	
-	public static List<ParamConverterProvider> getParamConverterProviders() {
-		return paramConverterProviders;
-	}
-	
-	public static void addToParamConverterList(ParamConverterProvider provider) {
-		registerNewParamConverter(provider.getClass());
-	}
 	
 	public static void registerProviders(ClientBuilder clientBuilder, Class interfaceType) {
 		RegisterProvider registerProvider = (RegisterProvider) interfaceType.getAnnotation(RegisterProvider.class);
@@ -69,31 +56,12 @@ public class ProviderRegistrationUtil {
 			}
 		}
 		
-		registerNewParamConverter(providerClass);
-		
 		if (priority == -1) {
 			clientBuilder.register(providerClass);
 		} else {
 			clientBuilder.register(providerClass, priority);
 		}
 	}
-	
-	private static void registerNewParamConverter(Class providerClass) {
-		ParamConverterProvider paramInstance = newParamConverterInstance(providerClass);
-		if (paramInstance != null) {
-			boolean isContained = false;
-			for (ParamConverterProvider p : paramConverterProviders) {
-				if (p.getClass().getName().equals(providerClass.getName())) {
-					isContained = true;
-					break;
-				}
-			}
-			if (!isContained) {
-				paramConverterProviders.add(paramInstance);
-			}
-		}
-	}
-	
 	
 	public static void registerProviders(RestClientBuilder restClientBuilder, Class interfaceType) {
 		RegisterProvider registerProvider = (RegisterProvider) interfaceType.getAnnotation(RegisterProvider.class);
@@ -128,13 +96,4 @@ public class ProviderRegistrationUtil {
 			restClientBuilder.register(providerClass, priority);
 		}
 	}
-	
-	private static ParamConverterProvider newParamConverterInstance(Class providerClass) {
-		try {
-			return (ParamConverterProvider) providerClass.newInstance();
-		} catch (Throwable e) {
-			return null;
-		}
-	}
-	
 }

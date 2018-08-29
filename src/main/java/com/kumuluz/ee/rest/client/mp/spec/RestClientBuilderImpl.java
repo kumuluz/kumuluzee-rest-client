@@ -119,8 +119,7 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 			}
 			
 			ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);
-			this.addParamConverters();
-			
+
 			RestClientInvoker rcInvoker = new RestClientInvoker(
 				clientBuilder.build(),
 				baseURI.toString(),
@@ -131,13 +130,6 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 			
 		} catch (Exception e) {
 			throw new RuntimeException(e);
-		}
-	}
-	
-	private void addParamConverters() {
-		List<ParamConverterProvider> paramConverterProviders = ProviderRegistrationUtil.getParamConverterProviders();
-		for(ParamConverterProvider provider : paramConverterProviders) {
-			this.localProviderInstances.add(new LocalProviderInfo(provider, Priorities.USER));
 		}
 	}
 	
@@ -231,10 +223,7 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 		if (o instanceof ResponseExceptionMapper || o instanceof  ParamConverterProvider) {
 			registerLocalProviderInstance(o, i);
 		}
-		if (o instanceof ParamConverterProvider) {
-			ParamConverterProvider provider = (ParamConverterProvider)o;
-			ProviderRegistrationUtil.addToParamConverterList(provider);
-		}
+
 		this.clientBuilder.register(o, i);
 		return this;
 	}
@@ -257,11 +246,7 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 			ResponseExceptionMapper mapper = (ResponseExceptionMapper) o;
 			registerLocalProviderInstance(mapper, mapper.getPriority());
 		}
-		if (o instanceof ParamConverterProvider) {
-			ParamConverterProvider provider = (ParamConverterProvider)o;
-			ProviderRegistrationUtil.addToParamConverterList(provider);
-			registerLocalProviderInstance(o, Priorities.USER);
-		}
+
 		this.clientBuilder.register(o, map);
 		return this;
 	}
