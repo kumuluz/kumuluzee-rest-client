@@ -6,12 +6,6 @@
             <package name="org.eclipse.microprofile.rest.client.tck.*"/>
         </packages>
         <classes>
-            <class name="org.eclipse.microprofile.rest.client.tck.AdditionalRegistrationTest">
-                <methods>
-                    <exclude name="shouldRegisterAMultiTypedProviderClass"/>
-                    <exclude name="shouldRegisterAMultiTypedProviderInstance"/>
-                </methods>
-            </class>
             <class name="org.eclipse.microprofile.rest.client.tck.DefaultExceptionMapperTest">
                 <methods>
                     <exclude name="testPropagationOfResponseDetailsFromDefaultMapper"/>

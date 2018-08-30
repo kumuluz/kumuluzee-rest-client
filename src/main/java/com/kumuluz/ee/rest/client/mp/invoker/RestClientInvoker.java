@@ -54,9 +54,9 @@ import java.util.stream.Collectors;
 public class RestClientInvoker implements InvocationHandler {
 	private Client client;
 	private String baseURI;
-	private List<LocalProviderInfo> localProviderInstances;
-	
-	public RestClientInvoker(Client client, String baseURI, List<LocalProviderInfo> localProviderInstances) {
+	private Configuration configuration;
+
+	public RestClientInvoker(Client client, String baseURI, Configuration configuration) {
 		this.client = client;
 
 		// Jersey uses lazy initialization for Feature configuration, MP spec requires Features to be configured
@@ -67,7 +67,7 @@ public class RestClientInvoker implements InvocationHandler {
         }
 
 		this.baseURI = baseURI;
-		this.localProviderInstances = localProviderInstances;
+		this.configuration = configuration;
 	}
 	
 	@Override
@@ -85,8 +85,8 @@ public class RestClientInvoker implements InvocationHandler {
 
 			RestClientBuilder builder = RestClientBuilder.newBuilder();
 
-			client.getConfiguration().getInstances().forEach(builder::register);
-			client.getConfiguration().getProperties().forEach(builder::property);
+			configuration.getInstances().forEach(builder::register);
+			configuration.getProperties().forEach(builder::property);
 
 			return builder
 				.baseUrl(new URL(subresourceURL))
@@ -104,7 +104,7 @@ public class RestClientInvoker implements InvocationHandler {
 		}
 		
 		Map<String, Object> pathParams = paramInfo.getPathParameterValues();
-		replacePathParamParameters(client, pathParams);
+		replacePathParamParameters(pathParams);
 		String url = uriBuilder.buildFromMap(pathParams).toString();
 		
 		
@@ -167,8 +167,8 @@ public class RestClientInvoker implements InvocationHandler {
 		return result;
 	}
 	
-	private void replacePathParamParameters(Client client, Map<String, Object> pathParams) {
-		List<ParamConverterProvider> providers = getParamConverterProviders(client);
+	private void replacePathParamParameters(Map<String, Object> pathParams) {
+		List<ParamConverterProvider> providers = getProviders(ParamConverterProvider.class);
 		for(String pathParamKey : pathParams.keySet()) {
 			for(ParamConverterProvider provider : providers) {
 				ParamConverter converter = provider.getConverter(String.class, Object.class, new Annotation[]{});
@@ -177,31 +177,30 @@ public class RestClientInvoker implements InvocationHandler {
 		}
 	}
 
-	private List<ParamConverterProvider> getParamConverterProviders(Client client) {
-		Configuration conf = client.getConfiguration();
-		List<LocalProviderInfo> ls = new ArrayList<>();
+	private <T> List<T> getProviders(Class<T> providerType) {
+		List<LocalProviderInfo<T>> ls = new ArrayList<>();
 
-		for (Object provider : conf.getInstances()) {
-			Integer priority = conf.getContracts(provider.getClass()).get(ParamConverterProvider.class);
-			if (priority != null) {
-				ls.add(new LocalProviderInfo(provider, priority));
+		for (Object provider : configuration.getInstances()) {
+			Integer priority = configuration.getContracts(provider.getClass()).get(providerType);
+			if (priority != null && providerType.isInstance(provider)) {
+				ls.add(new LocalProviderInfo<>(providerType.cast(provider), priority));
 			}
 		}
 
-		for (Class providerClass : conf.getClasses()) {
-			Integer priority = conf.getContracts(providerClass).get(ParamConverterProvider.class);
-			if (priority != null) {
+		for (Class providerClass : configuration.getClasses()) {
+			Integer priority = configuration.getContracts(providerClass).get(providerType);
+			if (priority != null && providerType.isAssignableFrom(providerClass)) {
 				try {
-					ls.add(new LocalProviderInfo(providerClass.newInstance(), priority));
+					ls.add(new LocalProviderInfo<>(providerType.cast(providerClass.newInstance()), priority));
 				} catch (InstantiationException | IllegalAccessException e) {
-					throw new RuntimeException("Failed to create new instance of ParamConverterProvider " +
-							providerClass, e);
+					throw new RuntimeException("Failed to create new instance of "
+							+ providerType + ": " + providerClass, e);
 				}
 			}
 		}
 
 		return ls.stream().sorted(Comparator.comparingInt(LocalProviderInfo::getPriority))
-				.map(lpi -> (ParamConverterProvider)lpi.getLocalProvider()).collect(Collectors.toList());
+				.map(LocalProviderInfo::getLocalProvider).collect(Collectors.toList());
 	}
 	
 	private Response getResponseFromHttpResponseException(HttpResponseException ex) {
@@ -235,17 +234,11 @@ public class RestClientInvoker implements InvocationHandler {
 		int status = response.getStatus();
 		MultivaluedMap<String, Object> headers = response.getHeaders();
 		
-		for (LocalProviderInfo localProviderInfo : localProviderInstances) {
-			
-			if (localProviderInfo.getLocalProvider() instanceof ResponseExceptionMapper) {
-				
-				ResponseExceptionMapper mapper = (ResponseExceptionMapper) localProviderInfo.getLocalProvider();
-				
-				if (mapper.handles(status, headers)) {
-					Throwable throwable = mapper.toThrowable(response);
-					if (throwable != null) {
-						throwException(throwable, exceptionTypes);
-					}
+		for (ResponseExceptionMapper mapper : getProviders(ResponseExceptionMapper.class)) {
+			if (mapper.handles(status, headers)) {
+				Throwable throwable = mapper.toThrowable(response);
+				if (throwable != null) {
+					throwException(throwable, exceptionTypes);
 				}
 			}
 		}

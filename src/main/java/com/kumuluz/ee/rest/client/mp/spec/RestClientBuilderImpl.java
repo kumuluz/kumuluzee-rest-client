@@ -21,9 +21,9 @@
 package com.kumuluz.ee.rest.client.mp.spec;
 
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
-import com.kumuluz.ee.rest.client.mp.invoker.LocalProviderInfo;
 import com.kumuluz.ee.rest.client.mp.invoker.RestClientInvoker;
 import com.kumuluz.ee.rest.client.mp.proxy.RestClientProxyFactory;
+import com.kumuluz.ee.rest.client.mp.util.ExtendedConfiguration;
 import com.kumuluz.ee.rest.client.mp.util.InterfaceValidatorUtil;
 import com.kumuluz.ee.rest.client.mp.util.MapperDisabledUtil;
 import com.kumuluz.ee.rest.client.mp.util.ProviderRegistrationUtil;
@@ -40,7 +40,6 @@ import javax.enterprise.inject.spi.CDI;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.Configuration;
-import javax.ws.rs.ext.ParamConverterProvider;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -59,10 +58,15 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 	private DeltaSpikeProxyInvocationHandler deltaSpikeProxyInvocationHandler;
 	private BeanManager beanManager;
 	private URI baseURI;
-	private Set<LocalProviderInfo> localProviderInstances = new HashSet<>();
+
+	private Set<Object> customProviders;
+	private Map<Class, Map<Class<?>, Integer>> customProvidersContracts;
 	
 	RestClientBuilderImpl() {
 		clientBuilder = ClientBuilder.newBuilder();
+
+		customProviders = new HashSet<>();
+		customProvidersContracts = new HashMap<>();
 	}
 	
 	@Override
@@ -120,10 +124,14 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 			
 			ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);
 
+			if (!MapperDisabledUtil.isMapperDisabled(this.clientBuilder)) {
+				register(DefaultExceptionMapper.class);
+			}
+
 			RestClientInvoker rcInvoker = new RestClientInvoker(
 				clientBuilder.build(),
 				baseURI.toString(),
-				defineLocalProviderInstances());
+				this.getConfiguration());
 			deltaSpikeProxy.setDelegateInvocationHandler(rcInvoker);
 			
 			return instance;
@@ -131,20 +139,6 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-	
-	private List<LocalProviderInfo> defineLocalProviderInstances() {
-		if (!MapperDisabledUtil.isMapperDisabled(this.clientBuilder)) {
-			register(DefaultExceptionMapper.class);
-		}
-		
-		List<LocalProviderInfo> result = new ArrayList<>(this.localProviderInstances);
-		result.sort((o1, o2) -> {
-			Integer p1 = o1.getPriority();
-			Integer p2 = o2.getPriority();
-			return p1.compareTo(p2);
-		});
-		return result;
 	}
 	
 	private void lazyinit() {
@@ -161,7 +155,8 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 	
 	@Override
 	public Configuration getConfiguration() {
-		return clientBuilder.getConfiguration();
+		return new ExtendedConfiguration(this.clientBuilder.getConfiguration(),
+				this.customProviders, this.customProvidersContracts);
 	}
 	
 	@Override
@@ -209,55 +204,69 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 		if (o instanceof ResponseExceptionMapper) {
 			ResponseExceptionMapper mapper = (ResponseExceptionMapper) o;
 			register(mapper, mapper.getPriority());
-		} else if (o instanceof ParamConverterProvider) {
-			register(o, Priorities.USER);
-		} else {
-			this.clientBuilder.register(o);
 		}
+
+		this.clientBuilder.register(o);
+
 		return this;
 	}
 	
 	@Override
 	public RestClientBuilder register(Object o, int i) {
 		
-		if (o instanceof ResponseExceptionMapper || o instanceof  ParamConverterProvider) {
-			registerLocalProviderInstance(o, i);
+		if (o instanceof ResponseExceptionMapper) {
+			registerCustomProvider(o, ResponseExceptionMapper.class, i);
 		}
 
 		this.clientBuilder.register(o, i);
+
 		return this;
 	}
 	
 	@Override
 	public RestClientBuilder register(Object o, Class<?>... classes) {
-		// add ResponseExceptionMapper - otherwise is not added
+		List<Class<?>> nonCustomProviders = new ArrayList<>();
+
 		for (Class<?> clazz : classes) {
 			if (clazz.isAssignableFrom(ResponseExceptionMapper.class)) {
-				register(o);
+				int priority = Priorities.USER;
+				if (o instanceof ResponseExceptionMapper) {
+					priority = ((ResponseExceptionMapper) o).getPriority();
+				}
+				registerCustomProvider(o, ResponseExceptionMapper.class, priority);
+			} else {
+				nonCustomProviders.add(clazz);
 			}
 		}
-		this.clientBuilder.register(o, classes);
+
+		this.clientBuilder.register(o, nonCustomProviders.toArray(new Class[]{}));
 		return this;
 	}
 	
 	@Override
 	public RestClientBuilder register(Object o, Map<Class<?>, Integer> map) {
-		if (o instanceof ResponseExceptionMapper) {
-			ResponseExceptionMapper mapper = (ResponseExceptionMapper) o;
-			registerLocalProviderInstance(mapper, mapper.getPriority());
+
+		Map<Class<?>, Integer> nonCustomProviders = new HashMap<>();
+
+		for (Class<?> clazz : map.keySet()) {
+			if (clazz.isAssignableFrom(ResponseExceptionMapper.class)) {
+				registerCustomProvider(o, ResponseExceptionMapper.class, map.get(clazz));
+			} else {
+				nonCustomProviders.put(clazz, map.get(clazz));
+			}
 		}
 
-		this.clientBuilder.register(o, map);
+		this.clientBuilder.register(o, nonCustomProviders);
 		return this;
 	}
-	
-	private void registerLocalProviderInstance(Object provider, int priority) {
-		if (localProviderInstances.stream().map(LocalProviderInfo::getLocalProvider).anyMatch(provider::equals)) {
-			LOG.warning("Provider already registered! " + provider.getClass().getName());
-			return;
-		}
 
-		localProviderInstances.add(new LocalProviderInfo(provider, priority));
+	private void registerCustomProvider(Object providerImpl, Class providerClass, Integer priority) {
+		this.customProviders.add(providerImpl);
+
+		Map<Class<?>, Integer> contracts = this.customProvidersContracts
+				.computeIfAbsent(providerImpl.getClass(), k -> new HashMap<>());
+
+		contracts.put(providerClass, priority);
 	}
 
 	@SuppressWarnings("ResultOfMethodCallIgnored")
