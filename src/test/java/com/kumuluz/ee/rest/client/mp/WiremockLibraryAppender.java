@@ -20,25 +20,22 @@
  */
 package com.kumuluz.ee.rest.client.mp;
 
-import org.eclipse.microprofile.rest.client.tck.WiremockArquillianTest;
-import org.jboss.arquillian.container.test.spi.client.deployment.ApplicationArchiveProcessor;
-import org.jboss.arquillian.test.spi.TestClass;
+import org.jboss.arquillian.container.test.spi.client.deployment.CachedAuxilliaryArchiveAppender;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
 
 /**
  * @author Miha Jamsek
  */
-public class WiremockArchiveProcessor implements ApplicationArchiveProcessor {
-	
+public class WiremockLibraryAppender extends CachedAuxilliaryArchiveAppender {
+
 	@Override
-	public void process(Archive<?> archive, TestClass testClass) {
-		if(archive instanceof WebArchive) {
-			JavaArchive wiremock = ShrinkWrap.create(JavaArchive.class, "wiremock.jar")
-					.addPackages(true, "com.github.tomakehurst.wiremock");
-			archive.as(WebArchive.class).addAsLibrary(wiremock).addClass(WiremockArquillianTest.class);
-		}
+	protected Archive<?> buildArchive() {
+		return ShrinkWrap.create(JavaArchive.class, "wiremock.jar")
+				.addPackages(true, "com.github.tomakehurst.wiremock")
+				.addPackages(true, "org.apache.http")
+				.addPackages(true, "com.google")
+				.addPackages(true, "org.apache.commons");
 	}
 }

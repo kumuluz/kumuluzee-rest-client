@@ -31,7 +31,7 @@ import java.util.ResourceBundle;
  */
 public class DependencyAppender implements MavenDependencyAppender {
 	
-	private static final ResourceBundle versionsBundle = ResourceBundle.getBundle("META-INF/kumuluzee/metrics/versions");
+	private static final ResourceBundle versionsBundle = ResourceBundle.getBundle("META-INF/kumuluzee/rest-client/versions");
 	
 	@Override
 	public List<String> addLibraries() {
@@ -47,11 +47,6 @@ public class DependencyAppender implements MavenDependencyAppender {
 			versionsBundle.getString("microprofile-rest-client-version"));
 
 		libs.add("org.hamcrest:hamcrest-all:" + versionsBundle.getString("hamcrest-version"));
-
-		// required by wiremock
-		libs.add("com.google.guava:guava:" + versionsBundle.getString("guava-version"));
-		libs.add("org.apache.httpcomponents:httpclient:" + versionsBundle.getString("apache-http-components-version"));
-		libs.add("org.apache.commons:commons-lang3:" + versionsBundle.getString("apache-commons-version"));
 
 		final String DELTA_SPIKE_VERSION = versionsBundle.getString("deltaspike-version");
 		libs.add("org.apache.deltaspike.core:deltaspike-core-api:" +

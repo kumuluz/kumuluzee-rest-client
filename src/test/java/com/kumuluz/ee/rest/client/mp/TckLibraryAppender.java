@@ -20,18 +20,22 @@
  */
 package com.kumuluz.ee.rest.client.mp;
 
-import org.jboss.arquillian.container.test.spi.client.deployment.AuxiliaryArchiveAppender;
-import org.jboss.arquillian.core.spi.LoadableExtension;
+import org.jboss.arquillian.container.test.spi.client.deployment.CachedAuxilliaryArchiveAppender;
+import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.spec.JavaArchive;
 
 /**
- * @author Miha Jamsek
+ * Adds MicroProfile TCK classes to deployments.
+ *
+ * @author Urban Malc
+ * @since 1.0.1
  */
-public class RestClientArquillianExtension implements LoadableExtension {
-	
-	@Override
-	public void register(ExtensionBuilder extensionBuilder) {
-		extensionBuilder.service(AuxiliaryArchiveAppender.class, RestClientLibraryAppender.class);
-		extensionBuilder.service(AuxiliaryArchiveAppender.class, WiremockLibraryAppender.class);
-		extensionBuilder.service(AuxiliaryArchiveAppender.class, TckLibraryAppender.class);
-	}
+public class TckLibraryAppender extends CachedAuxilliaryArchiveAppender {
+
+    @Override
+    protected Archive<?> buildArchive() {
+        return ShrinkWrap.create(JavaArchive.class, "rest-client-tck.jar")
+                .addPackages(true, "org.eclipse.microprofile.rest.client.tck");
+    }
 }
