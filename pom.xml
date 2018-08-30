@@ -201,6 +201,9 @@
                     <suiteXmlFiles>
                         <suiteXmlFile>tck-suite.xml</suiteXmlFile>
                     </suiteXmlFiles>
+                    <environmentVariables>
+                        <KUMULUZEE_RESTCLIENT_DISABLEJETTYWWWAUTH>true</KUMULUZEE_RESTCLIENT_DISABLEJETTYWWWAUTH>
+                    </environmentVariables>
                 </configuration>
             </plugin>
             <plugin>

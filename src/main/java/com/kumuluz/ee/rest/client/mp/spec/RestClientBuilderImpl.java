@@ -30,14 +30,17 @@ import com.kumuluz.ee.rest.client.mp.util.ProviderRegistrationUtil;
 import org.apache.deltaspike.core.api.provider.BeanProvider;
 import org.apache.deltaspike.proxy.spi.DeltaSpikeProxy;
 import org.apache.deltaspike.proxy.spi.invocation.DeltaSpikeProxyInvocationHandler;
+import org.eclipse.jetty.client.WWWAuthenticationProtocolHandler;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
+import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
 
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.CDI;
 import javax.ws.rs.Priorities;
+import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.Configuration;
 import java.lang.reflect.Method;
@@ -128,8 +131,16 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 				register(DefaultExceptionMapper.class);
 			}
 
+			Client client = clientBuilder.build();
+
+			if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.disable-jetty-www-auth")
+					.orElse(false)) {
+				JettyConnectorProvider.getHttpClient(client).getProtocolHandlers()
+						.remove(WWWAuthenticationProtocolHandler.NAME);
+			}
+
 			RestClientInvoker rcInvoker = new RestClientInvoker(
-				clientBuilder.build(),
+				client,
 				baseURI.toString(),
 				this.getConfiguration());
 			deltaSpikeProxy.setDelegateInvocationHandler(rcInvoker);

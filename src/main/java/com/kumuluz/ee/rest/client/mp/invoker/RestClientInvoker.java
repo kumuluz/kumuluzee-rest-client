@@ -21,8 +21,6 @@
 package com.kumuluz.ee.rest.client.mp.invoker;
 
 import com.kumuluz.ee.rest.client.mp.util.BeanParamProcessorUtil;
-import org.eclipse.jetty.client.HttpResponseException;
-import org.eclipse.jetty.http.HttpField;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 
@@ -107,7 +105,6 @@ public class RestClientInvoker implements InvocationHandler {
 		replacePathParamParameters(pathParams);
 		String url = uriBuilder.buildFromMap(pathParams).toString();
 		
-		
 		Invocation.Builder request = client.target(url).request().headers(paramInfo.getHeaderValues());
 
 		for (Map.Entry<String, Object> entry : paramInfo.getCookieParameterValues().entrySet()) {
@@ -125,27 +122,9 @@ public class RestClientInvoker implements InvocationHandler {
 		Response response;
 		
 		try {
-			
 			response = invocation.invoke();
-			
 		} catch (ResponseProcessingException e) {
-			
 			response = e.getResponse();
-			
-		} catch (ProcessingException e2) {
-			// TODO: get response from processing exception and return it.
-			
-			// get root cause
-			Throwable cause = e2.getCause();
-			while (cause.getCause() != null) {
-				cause = cause.getCause();
-			}
-			
-			if (cause instanceof HttpResponseException) {
-				response = getResponseFromHttpResponseException((HttpResponseException) cause);
-			} else {
-				response = Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e2.getMessage()).build();
-			}
 		}
 		
 		handleExceptionMapping(response, Arrays.asList(method.getExceptionTypes()));
@@ -201,16 +180,6 @@ public class RestClientInvoker implements InvocationHandler {
 
 		return ls.stream().sorted(Comparator.comparingInt(LocalProviderInfo::getPriority))
 				.map(LocalProviderInfo::getLocalProvider).collect(Collectors.toList());
-	}
-	
-	private Response getResponseFromHttpResponseException(HttpResponseException ex) {
-		org.eclipse.jetty.client.api.Response jettyResponse = ex.getResponse();
-		Response.ResponseBuilder response = Response.status(jettyResponse.getStatus());
-		for (HttpField field : jettyResponse.getHeaders()) {
-			response = response.header(field.getName(), field.getValue());
-		}
-		response.entity(jettyResponse.getReason());
-		return response.build();
 	}
 	
 	private Object readResponseEntity(Response response, Class<?> returnType) {

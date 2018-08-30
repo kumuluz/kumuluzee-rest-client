@@ -6,11 +6,6 @@
             <package name="org.eclipse.microprofile.rest.client.tck.*"/>
         </packages>
         <classes>
-            <class name="org.eclipse.microprofile.rest.client.tck.DefaultExceptionMapperTest">
-                <methods>
-                    <exclude name="testPropagationOfResponseDetailsFromDefaultMapper"/>
-                </methods>
-            </class>
             <class name="org.eclipse.microprofile.rest.client.tck.FeatureRegistrationTest">
                 <methods>
                     <!-- this test is fixed in MP Rest Client 1.1 spec -->
