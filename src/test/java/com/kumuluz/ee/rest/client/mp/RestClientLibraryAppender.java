@@ -31,17 +31,17 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
  * @author Miha Jamsek
  */
 public class RestClientLibraryAppender extends CachedAuxilliaryArchiveAppender {
-	
-	@Override
-	protected Archive<?> buildArchive() {
-		
-		return ShrinkWrap.create(JavaArchive.class, "kumuluzee-rest-client-mp.jar")
-			.addPackages(true, MicroprofileRestClientExtension.class.getPackage())
-			.addAsServiceProvider(com.kumuluz.ee.common.Extension.class, MicroprofileRestClientExtension.class)
-			.addAsServiceProvider(javax.enterprise.inject.spi.Extension.class, RestClientExtension.class)
-			.addAsServiceProvider(org.eclipse.microprofile.rest.client.spi.RestClientBuilderResolver.class,
-				ClientBuilderResolver.class)
-			.addAsResource("META-INF/beans.xml");
-		
-	}
+
+    @Override
+    protected Archive<?> buildArchive() {
+
+        return ShrinkWrap.create(JavaArchive.class, "kumuluzee-rest-client-mp.jar")
+                .addPackages(true, MicroprofileRestClientExtension.class.getPackage())
+                .addAsServiceProvider(com.kumuluz.ee.common.Extension.class, MicroprofileRestClientExtension.class)
+                .addAsServiceProvider(javax.enterprise.inject.spi.Extension.class, RestClientExtension.class)
+                .addAsServiceProvider(org.eclipse.microprofile.rest.client.spi.RestClientBuilderResolver.class,
+                        ClientBuilderResolver.class)
+                .addAsResource("META-INF/beans.xml");
+
+    }
 }

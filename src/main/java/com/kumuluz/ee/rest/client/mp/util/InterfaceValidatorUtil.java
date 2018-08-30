@@ -40,120 +40,120 @@ import java.util.stream.Stream;
  * @author Miha Jamsek
  */
 public class InterfaceValidatorUtil {
-	
-	private static final String URI_PARAM_NAME_REGEX = "\\w[\\w.-]*";
-	private static final String URI_PARAM_REGEX_REGEX = "[^{}][^{}]*";
-	private static final String URI_REGEX_PATTERN = "\\{\\s*(" + URI_PARAM_NAME_REGEX + ")\\s*(:\\s*(" + URI_PARAM_REGEX_REGEX + "))?}";
-	private static final Pattern URL_PARAM_PATTERN = Pattern.compile(URI_REGEX_PATTERN);
-	private static final char openCurlyReplacement = 6;
-	private static final char closeCurlyReplacement = 7;
-	
-	public static <T> void validateApiInterface(Class<T> apiClass) {
-		checkForMultipleHttpMethods(apiClass.getMethods());
-		checkForMatchingParams(apiClass);
-	}
-	
-	private static <T> void checkForMatchingParams(Class<T> apiClass) {
-		
-		// declared variables
-		Set<String> interfaceVariables = new HashSet<>();
-		Set<String> methodsVariables = new HashSet<>();
-		// assigned variables
-		Set<String> methodParameterVariables = new HashSet<>();
-		
-		// get interface params
-		Path interfacePathAnnotation = apiClass.getAnnotation(Path.class);
-		if (interfacePathAnnotation != null) {
-			interfaceVariables.addAll(getPathParamList(interfacePathAnnotation.value()));
-		}
-		
-		// get methods params
-		for (Method method : apiClass.getMethods()) {
-			// add method annotation variables
-			Path methodPathAnnotation = method.getAnnotation(Path.class);
-			if (methodPathAnnotation != null) {
-				methodsVariables.addAll(getPathParamList(methodPathAnnotation.value()));
-			}
-			// add method parameter variables
-			for (Annotation[] annotations : method.getParameterAnnotations()) {
-				for (Annotation annotation : annotations) {
-					if (PathParam.class.equals(annotation.annotationType())) {
-						methodParameterVariables.add(((PathParam) annotation).value());
-					}
-				}
-			}
-		}
-		
-		Set<String> allDeclaredVariables = Stream
-			.concat(interfaceVariables.stream(), methodsVariables.stream())
-			.collect(Collectors.toSet());
-		
-		if (allDeclaredVariables.size() != methodParameterVariables.size()) {
-			String message = String.format("Number of path parameters and variables don't match! Cause: %s", apiClass);
-			throw new RestClientDefinitionException(message);
-		}
-		
-		Set<String> unmappedPathParams = symmetricDifferenceOnSets(allDeclaredVariables, methodParameterVariables);
-		if (unmappedPathParams.size() > 0) {
-			String message = String.format("Number of path parameters and variables don't match! Cause: %s", apiClass);
-			throw new RestClientDefinitionException(message);
-		}
-	}
-	
-	private static void checkForMultipleHttpMethods(Method[] methods) {
-		for (Method method : methods) {
-			boolean alreadyHasHTTPMethod = false;
-			Annotation alreadyDefinedHttpMethod = null;
-			for (Annotation annotation : method.getAnnotations()) {
-				boolean annotationIsHTTPMethod = annotation.annotationType().getAnnotation(HttpMethod.class) != null;
-				if (!alreadyHasHTTPMethod && annotationIsHTTPMethod) {
-					alreadyHasHTTPMethod = true;
-					alreadyDefinedHttpMethod = annotation;
-				} else if (alreadyHasHTTPMethod && annotationIsHTTPMethod) {
-					String message = String.format(
-						"Multiple HTTP methods are not allowed! Cause: %s and %s on method %s!",
-						annotation, alreadyDefinedHttpMethod, method.getName());
-					throw new RestClientDefinitionException(message);
-				}
-			}
-		}
-	}
-	
-	private static List<String> getPathParamList(String string) {
-		List<String> params = new ArrayList<>();
-		Matcher matcher = URL_PARAM_PATTERN.matcher(replaceCurlyBraces(string));
-		while (matcher.find()) {
-			String param = matcher.group(1);
-			params.add(param);
-		}
-		return params;
-	}
-	
-	private static String replaceCurlyBraces(String string) {
-		char[] chars = string.toCharArray();
-		int open = 0;
-		for (int i = 0; i < chars.length; i++) {
-			if (chars[i] == '{') {
-				if (open != 0) chars[i] = openCurlyReplacement;
-				open++;
-			} else if (chars[i] == '}') {
-				open--;
-				if (open != 0) {
-					chars[i] = closeCurlyReplacement;
-				}
-			}
-		}
-		return new String(chars);
-	}
-	
-	private static Set<String> symmetricDifferenceOnSets(Set<String> set1, Set<String> set2) {
-		Set<String> differenceResult = new HashSet<>(set1);
-		for(String elem : set2) {
-			if (!differenceResult.add(elem)) {
-				differenceResult.remove(elem);
-			}
-		}
-		return differenceResult;
-	}
-	
+
+    private static final String URI_PARAM_NAME_REGEX = "\\w[\\w.-]*";
+    private static final String URI_PARAM_REGEX_REGEX = "[^{}][^{}]*";
+    private static final String URI_REGEX_PATTERN = "\\{\\s*(" + URI_PARAM_NAME_REGEX + ")\\s*(:\\s*(" + URI_PARAM_REGEX_REGEX + "))?}";
+    private static final Pattern URL_PARAM_PATTERN = Pattern.compile(URI_REGEX_PATTERN);
+    private static final char openCurlyReplacement = 6;
+    private static final char closeCurlyReplacement = 7;
+
+    public static <T> void validateApiInterface(Class<T> apiClass) {
+        checkForMultipleHttpMethods(apiClass.getMethods());
+        checkForMatchingParams(apiClass);
+    }
+
+    private static <T> void checkForMatchingParams(Class<T> apiClass) {
+
+        // declared variables
+        Set<String> interfaceVariables = new HashSet<>();
+        Set<String> methodsVariables = new HashSet<>();
+        // assigned variables
+        Set<String> methodParameterVariables = new HashSet<>();
+
+        // get interface params
+        Path interfacePathAnnotation = apiClass.getAnnotation(Path.class);
+        if (interfacePathAnnotation != null) {
+            interfaceVariables.addAll(getPathParamList(interfacePathAnnotation.value()));
+        }
+
+        // get methods params
+        for (Method method : apiClass.getMethods()) {
+            // add method annotation variables
+            Path methodPathAnnotation = method.getAnnotation(Path.class);
+            if (methodPathAnnotation != null) {
+                methodsVariables.addAll(getPathParamList(methodPathAnnotation.value()));
+            }
+            // add method parameter variables
+            for (Annotation[] annotations : method.getParameterAnnotations()) {
+                for (Annotation annotation : annotations) {
+                    if (PathParam.class.equals(annotation.annotationType())) {
+                        methodParameterVariables.add(((PathParam) annotation).value());
+                    }
+                }
+            }
+        }
+
+        Set<String> allDeclaredVariables = Stream
+                .concat(interfaceVariables.stream(), methodsVariables.stream())
+                .collect(Collectors.toSet());
+
+        if (allDeclaredVariables.size() != methodParameterVariables.size()) {
+            String message = String.format("Number of path parameters and variables don't match! Cause: %s", apiClass);
+            throw new RestClientDefinitionException(message);
+        }
+
+        Set<String> unmappedPathParams = symmetricDifferenceOnSets(allDeclaredVariables, methodParameterVariables);
+        if (unmappedPathParams.size() > 0) {
+            String message = String.format("Number of path parameters and variables don't match! Cause: %s", apiClass);
+            throw new RestClientDefinitionException(message);
+        }
+    }
+
+    private static void checkForMultipleHttpMethods(Method[] methods) {
+        for (Method method : methods) {
+            boolean alreadyHasHTTPMethod = false;
+            Annotation alreadyDefinedHttpMethod = null;
+            for (Annotation annotation : method.getAnnotations()) {
+                boolean annotationIsHTTPMethod = annotation.annotationType().getAnnotation(HttpMethod.class) != null;
+                if (!alreadyHasHTTPMethod && annotationIsHTTPMethod) {
+                    alreadyHasHTTPMethod = true;
+                    alreadyDefinedHttpMethod = annotation;
+                } else if (alreadyHasHTTPMethod && annotationIsHTTPMethod) {
+                    String message = String.format(
+                            "Multiple HTTP methods are not allowed! Cause: %s and %s on method %s!",
+                            annotation, alreadyDefinedHttpMethod, method.getName());
+                    throw new RestClientDefinitionException(message);
+                }
+            }
+        }
+    }
+
+    private static List<String> getPathParamList(String string) {
+        List<String> params = new ArrayList<>();
+        Matcher matcher = URL_PARAM_PATTERN.matcher(replaceCurlyBraces(string));
+        while (matcher.find()) {
+            String param = matcher.group(1);
+            params.add(param);
+        }
+        return params;
+    }
+
+    private static String replaceCurlyBraces(String string) {
+        char[] chars = string.toCharArray();
+        int open = 0;
+        for (int i = 0; i < chars.length; i++) {
+            if (chars[i] == '{') {
+                if (open != 0) chars[i] = openCurlyReplacement;
+                open++;
+            } else if (chars[i] == '}') {
+                open--;
+                if (open != 0) {
+                    chars[i] = closeCurlyReplacement;
+                }
+            }
+        }
+        return new String(chars);
+    }
+
+    private static Set<String> symmetricDifferenceOnSets(Set<String> set1, Set<String> set2) {
+        Set<String> differenceResult = new HashSet<>(set1);
+        for (String elem : set2) {
+            if (!differenceResult.add(elem)) {
+                differenceResult.remove(elem);
+            }
+        }
+        return differenceResult;
+    }
+
 }

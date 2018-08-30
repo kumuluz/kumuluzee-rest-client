@@ -29,23 +29,23 @@ import java.util.Optional;
  * @author Miha Jamsek
  */
 public class MapperDisabledUtil {
-	
-	private static final String DEFAULT_MAPPER_PROPERTY = "microprofile.rest.client.disable.default.mapper";
-	
-	public static boolean isMapperDisabled(ClientBuilder clientBuilder) {
-		Optional<Boolean> defaultMapperProp = ConfigProvider.getConfig().getOptionalValue(DEFAULT_MAPPER_PROPERTY, Boolean.class);
-		if (defaultMapperProp.isPresent() && defaultMapperProp.get().equals(Boolean.TRUE)) {
-			return true;
-		} else {
-			try {
-				Object property = clientBuilder.getConfiguration().getProperty(DEFAULT_MAPPER_PROPERTY);
-				if (property != null) {
-					return (Boolean) property;
-				}
-			} catch (Throwable ignored) {
-			
-			}
-		}
-		return false;
-	}
+
+    private static final String DEFAULT_MAPPER_PROPERTY = "microprofile.rest.client.disable.default.mapper";
+
+    public static boolean isMapperDisabled(ClientBuilder clientBuilder) {
+        Optional<Boolean> defaultMapperProp = ConfigProvider.getConfig().getOptionalValue(DEFAULT_MAPPER_PROPERTY, Boolean.class);
+        if (defaultMapperProp.isPresent() && defaultMapperProp.get().equals(Boolean.TRUE)) {
+            return true;
+        } else {
+            try {
+                Object property = clientBuilder.getConfiguration().getProperty(DEFAULT_MAPPER_PROPERTY);
+                if (property != null) {
+                    return (Boolean) property;
+                }
+            } catch (Throwable ignored) {
+
+            }
+        }
+        return false;
+    }
 }

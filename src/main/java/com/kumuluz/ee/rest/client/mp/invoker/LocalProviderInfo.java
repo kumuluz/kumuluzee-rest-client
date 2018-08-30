@@ -25,21 +25,21 @@ package com.kumuluz.ee.rest.client.mp.invoker;
  */
 
 public class LocalProviderInfo<T> {
-	
-	private T localProvider;
-	private int priority;
-	
-	public LocalProviderInfo(T localProvider, int priority) {
-		this.localProvider = localProvider;
-		this.priority = priority;
-	}
-	
-	public T getLocalProvider() {
-		return localProvider;
-	}
-	
-	public int getPriority() {
-		return priority;
-	}
-	
+
+    private T localProvider;
+    private int priority;
+
+    public LocalProviderInfo(T localProvider, int priority) {
+        this.localProvider = localProvider;
+        this.priority = priority;
+    }
+
+    public T getLocalProvider() {
+        return localProvider;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
 }

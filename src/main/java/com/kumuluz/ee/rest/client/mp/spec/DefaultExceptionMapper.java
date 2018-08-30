@@ -30,19 +30,19 @@ import javax.ws.rs.core.Response;
  * @author Miha Jamsek
  */
 public class DefaultExceptionMapper implements ResponseExceptionMapper {
-	
-	@Override
-	public Throwable toThrowable(Response response) {
-		return new WebApplicationException("Unknown Rest Client error! Status code is: " + response.getStatus(), response);
-	}
-	
-	@Override
-	public int getPriority() {
-		return Integer.MAX_VALUE;
-	}
-	
-	@Override
-	public boolean handles(int status, MultivaluedMap headers) {
-		return status >= 400;
-	}
+
+    @Override
+    public Throwable toThrowable(Response response) {
+        return new WebApplicationException("Unknown Rest Client error! Status code is: " + response.getStatus(), response);
+    }
+
+    @Override
+    public int getPriority() {
+        return Integer.MAX_VALUE;
+    }
+
+    @Override
+    public boolean handles(int status, MultivaluedMap headers) {
+        return status >= 400;
+    }
 }

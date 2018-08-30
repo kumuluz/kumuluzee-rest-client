@@ -27,8 +27,8 @@ import org.eclipse.microprofile.rest.client.spi.RestClientBuilderResolver;
  * @author Miha Jamsek
  */
 public class ClientBuilderResolver extends RestClientBuilderResolver {
-	@Override
-	public RestClientBuilder newBuilder() {
-		return new RestClientBuilderImpl();
-	}
+    @Override
+    public RestClientBuilder newBuilder() {
+        return new RestClientBuilderImpl();
+    }
 }

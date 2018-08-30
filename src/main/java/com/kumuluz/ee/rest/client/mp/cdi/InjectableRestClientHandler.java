@@ -35,42 +35,42 @@ import java.util.Map;
 
 @Dependent
 public class InjectableRestClientHandler implements InvocationHandler {
-	
-	private static Map<Class, Object> restClientInvokerCache = new HashMap<>();
-	private static Map<Class, RestClientDefinitionException> restClientInvokerExceptions = new HashMap<>();
-	
-	@Override
-	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-		Object restClientInvoker = restClientInvokerCache.get(method.getDeclaringClass());
-		
-		if (restClientInvoker == null) {
 
-			RestClientDefinitionException ex = restClientInvokerExceptions.get(method.getDeclaringClass());
+    private static Map<Class, Object> restClientInvokerCache = new HashMap<>();
+    private static Map<Class, RestClientDefinitionException> restClientInvokerExceptions = new HashMap<>();
 
-			if (ex == null) {
-				throw new RuntimeException("CDI invoker not found for method " + method.toString() + " of class " +
-						method.getDeclaringClass());
-			}
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        Object restClientInvoker = restClientInvokerCache.get(method.getDeclaringClass());
 
-			throw new RuntimeException("Exception occurred when initializing rest client", ex);
-		}
-		
-		try {
-			return method.invoke(restClientInvoker, args);
-		} catch (InvocationTargetException exc) {
-			Throwable cause = exc.getCause();
-			if (cause == null) {
-				cause = exc;
-			}
-			throw cause;
-		}
-	}
+        if (restClientInvoker == null) {
 
-	static void addRestClientInvoker(Class c, Object o) {
-		restClientInvokerCache.put(c, o);
-	}
+            RestClientDefinitionException ex = restClientInvokerExceptions.get(method.getDeclaringClass());
 
-	static void addRestClientInvokerException(Class c, RestClientDefinitionException ex) {
-		restClientInvokerExceptions.put(c, ex);
-	}
+            if (ex == null) {
+                throw new RuntimeException("CDI invoker not found for method " + method.toString() + " of class " +
+                        method.getDeclaringClass());
+            }
+
+            throw new RuntimeException("Exception occurred when initializing rest client", ex);
+        }
+
+        try {
+            return method.invoke(restClientInvoker, args);
+        } catch (InvocationTargetException exc) {
+            Throwable cause = exc.getCause();
+            if (cause == null) {
+                cause = exc;
+            }
+            throw cause;
+        }
+    }
+
+    static void addRestClientInvoker(Class c, Object o) {
+        restClientInvokerCache.put(c, o);
+    }
+
+    static void addRestClientInvokerException(Class c, RestClientDefinitionException ex) {
+        restClientInvokerExceptions.put(c, ex);
+    }
 }

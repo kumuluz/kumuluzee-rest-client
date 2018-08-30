@@ -32,56 +32,56 @@ import java.util.Map;
  */
 
 public class ParamInfo {
-	
-	private Map<String, Object> pathParameterValues = new HashMap<>();
-	private Map<String, Object> queryParameterValues = new HashMap<>();
-	private Map<String, Object> cookieParameterValues = new HashMap<>();
-	private MultivaluedMap<String, Object> headerValues = new MultivaluedHashMap<>();
-	private Object payload = null;
-	
-	public void addPathParameter(String name, Object val) {
-		pathParameterValues.put(name, val);
-	}
-	
-	public void addQueryParameter(String name, Object val) {
-		queryParameterValues.put(name, val);
-	}
-	
-	public void addCookieParameter(String name, Object val) {
-		cookieParameterValues.put(name, val);
-	}
-	
-	public void addHeader(String name, Object val) {
-		headerValues.add(name, val);
-	}
-	
-	public void setPayload(Object payload) {
-		this.payload = payload;
-	}
-	
-	public Map<String, Object> getPathParameterValues() {
-		return pathParameterValues;
-	}
-	
-	public Map<String, Object> getQueryParameterValues() {
-		return queryParameterValues;
-	}
-	
-	public MultivaluedMap<String, Object> getHeaderValues() {
-		return headerValues;
-	}
-	
-	public Map<String, Object> getCookieParameterValues() {
-		return cookieParameterValues;
-	}
-	
-	public Object getPayload() {
-		if (payload == null) {
-			return null;
-		}
-		if (payload instanceof JsonObject || payload instanceof JsonArray) {
-			return payload.toString();
-		}
-		return payload;
-	}
+
+    private Map<String, Object> pathParameterValues = new HashMap<>();
+    private Map<String, Object> queryParameterValues = new HashMap<>();
+    private Map<String, Object> cookieParameterValues = new HashMap<>();
+    private MultivaluedMap<String, Object> headerValues = new MultivaluedHashMap<>();
+    private Object payload = null;
+
+    public void addPathParameter(String name, Object val) {
+        pathParameterValues.put(name, val);
+    }
+
+    public void addQueryParameter(String name, Object val) {
+        queryParameterValues.put(name, val);
+    }
+
+    public void addCookieParameter(String name, Object val) {
+        cookieParameterValues.put(name, val);
+    }
+
+    public void addHeader(String name, Object val) {
+        headerValues.add(name, val);
+    }
+
+    public void setPayload(Object payload) {
+        this.payload = payload;
+    }
+
+    public Map<String, Object> getPathParameterValues() {
+        return pathParameterValues;
+    }
+
+    public Map<String, Object> getQueryParameterValues() {
+        return queryParameterValues;
+    }
+
+    public MultivaluedMap<String, Object> getHeaderValues() {
+        return headerValues;
+    }
+
+    public Map<String, Object> getCookieParameterValues() {
+        return cookieParameterValues;
+    }
+
+    public Object getPayload() {
+        if (payload == null) {
+            return null;
+        }
+        if (payload instanceof JsonObject || payload instanceof JsonArray) {
+            return payload.toString();
+        }
+        return payload;
+    }
 }

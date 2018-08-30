@@ -27,11 +27,11 @@ import org.jboss.arquillian.core.spi.LoadableExtension;
  * @author Miha Jamsek
  */
 public class RestClientArquillianExtension implements LoadableExtension {
-	
-	@Override
-	public void register(ExtensionBuilder extensionBuilder) {
-		extensionBuilder.service(AuxiliaryArchiveAppender.class, RestClientLibraryAppender.class);
-		extensionBuilder.service(AuxiliaryArchiveAppender.class, WiremockLibraryAppender.class);
-		extensionBuilder.service(AuxiliaryArchiveAppender.class, TckLibraryAppender.class);
-	}
+
+    @Override
+    public void register(ExtensionBuilder extensionBuilder) {
+        extensionBuilder.service(AuxiliaryArchiveAppender.class, RestClientLibraryAppender.class);
+        extensionBuilder.service(AuxiliaryArchiveAppender.class, WiremockLibraryAppender.class);
+        extensionBuilder.service(AuxiliaryArchiveAppender.class, TckLibraryAppender.class);
+    }
 }

@@ -32,41 +32,41 @@ import java.lang.reflect.Parameter;
  * @author Miha Jamsek
  */
 public class BeanParamProcessorUtil {
-	
-	private Parameter parameter;
-	
-	public BeanParamProcessorUtil(Parameter parameter) {
-		this.parameter = parameter;
-	}
-	
-	public <T> ParamInfo getBeanParams(ParamInfo paramInfo, T instance) {
-		if (instance == null) {
-			return paramInfo;
-		}
-		try {
-			Class paramType = parameter.getType();
-			for (Field field : paramType.getDeclaredFields()) {
-				
-				if (field.isAnnotationPresent(QueryParam.class)) {
-					QueryParam queryParam = field.getAnnotation(QueryParam.class);
-					field.setAccessible(true);
-					paramInfo.addQueryParameter(queryParam.value(), field.get(instance));
-				}
-				if (field.isAnnotationPresent(HeaderParam.class)) {
-					HeaderParam headerParam = field.getAnnotation(HeaderParam.class);
-					field.setAccessible(true);
-					paramInfo.addHeader(headerParam.value(), field.get(instance));
-				}
-				if (field.isAnnotationPresent(CookieParam.class)) {
-					CookieParam cookieParam = field.getAnnotation(CookieParam.class);
-					field.setAccessible(true);
-					paramInfo.addCookieParameter(cookieParam.value(), field.get(instance));
-				}
-			}
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		}
-		return paramInfo;
-	}
-	
+
+    private Parameter parameter;
+
+    public BeanParamProcessorUtil(Parameter parameter) {
+        this.parameter = parameter;
+    }
+
+    public <T> ParamInfo getBeanParams(ParamInfo paramInfo, T instance) {
+        if (instance == null) {
+            return paramInfo;
+        }
+        try {
+            Class paramType = parameter.getType();
+            for (Field field : paramType.getDeclaredFields()) {
+
+                if (field.isAnnotationPresent(QueryParam.class)) {
+                    QueryParam queryParam = field.getAnnotation(QueryParam.class);
+                    field.setAccessible(true);
+                    paramInfo.addQueryParameter(queryParam.value(), field.get(instance));
+                }
+                if (field.isAnnotationPresent(HeaderParam.class)) {
+                    HeaderParam headerParam = field.getAnnotation(HeaderParam.class);
+                    field.setAccessible(true);
+                    paramInfo.addHeader(headerParam.value(), field.get(instance));
+                }
+                if (field.isAnnotationPresent(CookieParam.class)) {
+                    CookieParam cookieParam = field.getAnnotation(CookieParam.class);
+                    field.setAccessible(true);
+                    paramInfo.addCookieParameter(cookieParam.value(), field.get(instance));
+                }
+            }
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return paramInfo;
+    }
+
 }

@@ -30,32 +30,32 @@ import java.util.ResourceBundle;
  * @author Miha Jamsek
  */
 public class DependencyAppender implements MavenDependencyAppender {
-	
-	private static final ResourceBundle versionsBundle = ResourceBundle.getBundle("META-INF/kumuluzee/rest-client/versions");
-	
-	@Override
-	public List<String> addLibraries() {
-	
-		List<String> libs = new ArrayList<>();
 
-		libs.add("com.kumuluz.ee:kumuluzee-jax-rs-jersey:");
-		libs.add("com.kumuluz.ee:kumuluzee-json-p-jsonp:");
-		libs.add("com.kumuluz.ee.config:kumuluzee-config-mp:" +
-			versionsBundle.getString("kumuluzee-config-mp-version"));
+    private static final ResourceBundle versionsBundle = ResourceBundle.getBundle("META-INF/kumuluzee/rest-client/versions");
 
-		libs.add("org.eclipse.microprofile.rest.client:microprofile-rest-client-api:" +
-			versionsBundle.getString("microprofile-rest-client-version"));
+    @Override
+    public List<String> addLibraries() {
 
-		libs.add("org.hamcrest:hamcrest-all:" + versionsBundle.getString("hamcrest-version"));
+        List<String> libs = new ArrayList<>();
 
-		final String DELTA_SPIKE_VERSION = versionsBundle.getString("deltaspike-version");
-		libs.add("org.apache.deltaspike.core:deltaspike-core-api:" +
-			DELTA_SPIKE_VERSION);
-		libs.add("org.apache.deltaspike.core:deltaspike-core-impl:" +
-			DELTA_SPIKE_VERSION);
-		libs.add("org.apache.deltaspike.modules:deltaspike-partial-bean-module-impl:" +
-			DELTA_SPIKE_VERSION);
-		
-		return libs;
-	}
+        libs.add("com.kumuluz.ee:kumuluzee-jax-rs-jersey:");
+        libs.add("com.kumuluz.ee:kumuluzee-json-p-jsonp:");
+        libs.add("com.kumuluz.ee.config:kumuluzee-config-mp:" +
+                versionsBundle.getString("kumuluzee-config-mp-version"));
+
+        libs.add("org.eclipse.microprofile.rest.client:microprofile-rest-client-api:" +
+                versionsBundle.getString("microprofile-rest-client-version"));
+
+        libs.add("org.hamcrest:hamcrest-all:" + versionsBundle.getString("hamcrest-version"));
+
+        final String DELTA_SPIKE_VERSION = versionsBundle.getString("deltaspike-version");
+        libs.add("org.apache.deltaspike.core:deltaspike-core-api:" +
+                DELTA_SPIKE_VERSION);
+        libs.add("org.apache.deltaspike.core:deltaspike-core-impl:" +
+                DELTA_SPIKE_VERSION);
+        libs.add("org.apache.deltaspike.modules:deltaspike-partial-bean-module-impl:" +
+                DELTA_SPIKE_VERSION);
+
+        return libs;
+    }
 }

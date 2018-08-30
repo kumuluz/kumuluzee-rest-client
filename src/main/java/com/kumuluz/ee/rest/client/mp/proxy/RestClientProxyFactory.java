@@ -30,26 +30,26 @@ import java.util.ArrayList;
  * @author Miha Jamsek
  */
 public class RestClientProxyFactory extends DeltaSpikeProxyFactory {
-	
-	private static final RestClientProxyFactory INSTANCE = new RestClientProxyFactory();
-	
-	public static RestClientProxyFactory getInstance() {
-		return INSTANCE;
-	}
-	
-	@Override
-	protected ArrayList<Method> getDelegateMethods(Class<?> aClass, ArrayList<Method> allMethods) {
-		ArrayList<Method> methods = new ArrayList<>();
-		for (Method method : allMethods) {
-			if (Modifier.isAbstract(method.getModifiers())) {
-				methods.add(method);
-			}
-		}
-		return methods;
-	}
-	
-	@Override
-	protected String getProxyClassSuffix() {
-		return "$$RCProxyClient";
-	}
+
+    private static final RestClientProxyFactory INSTANCE = new RestClientProxyFactory();
+
+    public static RestClientProxyFactory getInstance() {
+        return INSTANCE;
+    }
+
+    @Override
+    protected ArrayList<Method> getDelegateMethods(Class<?> aClass, ArrayList<Method> allMethods) {
+        ArrayList<Method> methods = new ArrayList<>();
+        for (Method method : allMethods) {
+            if (Modifier.isAbstract(method.getModifiers())) {
+                methods.add(method);
+            }
+        }
+        return methods;
+    }
+
+    @Override
+    protected String getProxyClassSuffix() {
+        return "$$RCProxyClient";
+    }
 }

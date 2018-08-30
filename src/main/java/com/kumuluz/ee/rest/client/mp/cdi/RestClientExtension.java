@@ -45,99 +45,99 @@ import java.util.Set;
  */
 
 public class RestClientExtension implements Extension {
-	
-	private Set<AnnotatedType> classes;
 
-	public RestClientExtension() {
-		this.classes = new HashSet<>();
-	}
-	
-	public <T> void processAnnotatedType(@Observes @WithAnnotations(RegisterRestClient.class)ProcessAnnotatedType<T> anType, BeanManager beanManager) {
-		Class<T> typeDef = anType.getAnnotatedType().getJavaClass();
-		
-		if(!typeDef.isInterface()) {
-			throw new IllegalArgumentException("Rest client needs to be interface: " + typeDef);
-		}
-		
-		this.addAnnotatedType(anType.getAnnotatedType());
-		anType.veto();
-	}
+    private Set<AnnotatedType> classes;
 
-	public <T> void afterBean(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager) {
-		for (AnnotatedType anType : this.classes) {
-			DeltaSpikeProxyContextualLifecycle lifecycle = new DeltaSpikeProxyContextualLifecycle(
-					anType.getJavaClass(),
-					InjectableRestClientHandler.class,
-					PartialBeanProxyFactory.getInstance(),
-					beanManager
-			);
-			
-			Class scopeClass = resolveScope(anType.getJavaClass());
-			
-			BeanBuilder<T> beanBuilder = new BeanBuilder<T>(beanManager)
-					.readFromType(anType)
-					.qualifiers(new RestClient.RestClientLiteral(), new DefaultLiteral(), new AnyLiteral())
-					.passivationCapable(true)
-					.scope(scopeClass)
-					.beanLifecycle(lifecycle);
+    public RestClientExtension() {
+        this.classes = new HashSet<>();
+    }
 
-			afterBeanDiscovery.addBean(beanBuilder.create());
-		}
-	}
+    public <T> void processAnnotatedType(@Observes @WithAnnotations(RegisterRestClient.class) ProcessAnnotatedType<T> anType, BeanManager beanManager) {
+        Class<T> typeDef = anType.getAnnotatedType().getJavaClass();
 
-	public void afterDeploymentValidation(@Observes AfterDeploymentValidation event) {
-		for (AnnotatedType anType : this.classes) {
-			try {
-				// create invoker and add it to cache
-				RestClientBuilder restClientBuilder = RestClientBuilder.newBuilder();
+        if (!typeDef.isInterface()) {
+            throw new IllegalArgumentException("Rest client needs to be interface: " + typeDef);
+        }
 
-				ProviderRegistrationUtil.registerProviders(restClientBuilder, anType.getJavaClass());
+        this.addAnnotatedType(anType.getAnnotatedType());
+        anType.veto();
+    }
 
-				Object restClientInvoker = restClientBuilder.build(anType.getJavaClass());
-				InjectableRestClientHandler.addRestClientInvoker(anType.getJavaClass(), restClientInvoker);
-			} catch (Exception e) {
-				InjectableRestClientHandler.addRestClientInvokerException(anType.getJavaClass(),
-						new RestClientDefinitionException(e));
-			}
-		}
-	}
+    public <T> void afterBean(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager) {
+        for (AnnotatedType anType : this.classes) {
+            DeltaSpikeProxyContextualLifecycle lifecycle = new DeltaSpikeProxyContextualLifecycle(
+                    anType.getJavaClass(),
+                    InjectableRestClientHandler.class,
+                    PartialBeanProxyFactory.getInstance(),
+                    beanManager
+            );
 
-	private void addAnnotatedType(AnnotatedType annotatedType) {
-		if (this.classes.stream().map(AnnotatedType::getJavaClass).anyMatch(annotatedType.getJavaClass()::equals)) {
-			return;
-		}
+            Class scopeClass = resolveScope(anType.getJavaClass());
 
-		this.classes.add(annotatedType);
-	}
-	
-	private Class resolveScope(Class interfaceClass) {
-		
-		Optional<String> scopeConfig = RegistrationConfigUtil.getConfigurationParameter(interfaceClass, "scope",
-				String.class);
-		
-		if (scopeConfig.isPresent()) {
-			try {
-				return Class.forName(scopeConfig.get());
-			} catch (ClassNotFoundException e) {
-				return Dependent.class;
-			}
-		} else {
-		
-			if (interfaceClass.isAnnotationPresent(RequestScoped.class)) {
-				return RequestScoped.class;
-			} else if (interfaceClass.isAnnotationPresent(ApplicationScoped.class)) {
-				return ApplicationScoped.class;
-			} else if (interfaceClass.isAnnotationPresent(SessionScoped.class)) {
-				return SessionScoped.class;
-			} else if (interfaceClass.isAnnotationPresent(ConversationScoped.class)) {
-				return ConversationScoped.class;
-			} else if (interfaceClass.isAnnotationPresent(Singleton.class)) {
-				return Singleton.class;
-			} else {
-				return Dependent.class;
-			}
-		}
-		
-	}
+            BeanBuilder<T> beanBuilder = new BeanBuilder<T>(beanManager)
+                    .readFromType(anType)
+                    .qualifiers(new RestClient.RestClientLiteral(), new DefaultLiteral(), new AnyLiteral())
+                    .passivationCapable(true)
+                    .scope(scopeClass)
+                    .beanLifecycle(lifecycle);
+
+            afterBeanDiscovery.addBean(beanBuilder.create());
+        }
+    }
+
+    public void afterDeploymentValidation(@Observes AfterDeploymentValidation event) {
+        for (AnnotatedType anType : this.classes) {
+            try {
+                // create invoker and add it to cache
+                RestClientBuilder restClientBuilder = RestClientBuilder.newBuilder();
+
+                ProviderRegistrationUtil.registerProviders(restClientBuilder, anType.getJavaClass());
+
+                Object restClientInvoker = restClientBuilder.build(anType.getJavaClass());
+                InjectableRestClientHandler.addRestClientInvoker(anType.getJavaClass(), restClientInvoker);
+            } catch (Exception e) {
+                InjectableRestClientHandler.addRestClientInvokerException(anType.getJavaClass(),
+                        new RestClientDefinitionException(e));
+            }
+        }
+    }
+
+    private void addAnnotatedType(AnnotatedType annotatedType) {
+        if (this.classes.stream().map(AnnotatedType::getJavaClass).anyMatch(annotatedType.getJavaClass()::equals)) {
+            return;
+        }
+
+        this.classes.add(annotatedType);
+    }
+
+    private Class resolveScope(Class interfaceClass) {
+
+        Optional<String> scopeConfig = RegistrationConfigUtil.getConfigurationParameter(interfaceClass, "scope",
+                String.class);
+
+        if (scopeConfig.isPresent()) {
+            try {
+                return Class.forName(scopeConfig.get());
+            } catch (ClassNotFoundException e) {
+                return Dependent.class;
+            }
+        } else {
+
+            if (interfaceClass.isAnnotationPresent(RequestScoped.class)) {
+                return RequestScoped.class;
+            } else if (interfaceClass.isAnnotationPresent(ApplicationScoped.class)) {
+                return ApplicationScoped.class;
+            } else if (interfaceClass.isAnnotationPresent(SessionScoped.class)) {
+                return SessionScoped.class;
+            } else if (interfaceClass.isAnnotationPresent(ConversationScoped.class)) {
+                return ConversationScoped.class;
+            } else if (interfaceClass.isAnnotationPresent(Singleton.class)) {
+                return Singleton.class;
+            } else {
+                return Dependent.class;
+            }
+        }
+
+    }
 
 }

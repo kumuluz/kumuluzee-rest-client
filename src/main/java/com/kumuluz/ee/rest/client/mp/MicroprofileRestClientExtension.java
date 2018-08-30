@@ -32,15 +32,15 @@ import java.util.logging.Logger;
  */
 @EeExtensionDef(name = "MicroprofileRestClient", group = "rest.client"/*EeExtensionGroup.REST_CLIENT*/)
 public class MicroprofileRestClientExtension implements Extension {
-	
-	private static final Logger LOG = Logger.getLogger(MicroprofileRestClientExtension.class.getSimpleName());
-	
-	@Override
-	public void load() {
-		LOG.info("initializing Microprofile Rest Client 1.0.1");
-	}
-	
-	@Override
-	public void init(KumuluzServerWrapper server, EeConfig eeConfig) {
-	}
+
+    private static final Logger LOG = Logger.getLogger(MicroprofileRestClientExtension.class.getSimpleName());
+
+    @Override
+    public void load() {
+        LOG.info("initializing Microprofile Rest Client 1.0.1");
+    }
+
+    @Override
+    public void init(KumuluzServerWrapper server, EeConfig eeConfig) {
+    }
 }

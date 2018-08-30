@@ -30,12 +30,12 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
  */
 public class WiremockLibraryAppender extends CachedAuxilliaryArchiveAppender {
 
-	@Override
-	protected Archive<?> buildArchive() {
-		return ShrinkWrap.create(JavaArchive.class, "wiremock.jar")
-				.addPackages(true, "com.github.tomakehurst.wiremock")
-				.addPackages(true, "org.apache.http")
-				.addPackages(true, "com.google")
-				.addPackages(true, "org.apache.commons");
-	}
+    @Override
+    protected Archive<?> buildArchive() {
+        return ShrinkWrap.create(JavaArchive.class, "wiremock.jar")
+                .addPackages(true, "com.github.tomakehurst.wiremock")
+                .addPackages(true, "org.apache.http")
+                .addPackages(true, "com.google")
+                .addPackages(true, "org.apache.commons");
+    }
 }

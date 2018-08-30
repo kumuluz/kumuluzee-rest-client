@@ -35,91 +35,91 @@ import java.util.logging.Logger;
  */
 public class ProviderRegistrationUtil {
 
-	private static final Logger LOG = Logger.getLogger(ProviderRegistrationUtil.class.getSimpleName());
-	
-	public static void registerProviders(ClientBuilder clientBuilder, Class interfaceType) {
-		// annotation providers
-		RegisterProvider registerProvider = (RegisterProvider) interfaceType.getAnnotation(RegisterProvider.class);
-		if (registerProvider != null) {
-			registerSingleProvider(clientBuilder, registerProvider);
-		}
-		RegisterProviders registerProviders = (RegisterProviders) interfaceType.getAnnotation(RegisterProviders.class);
-		if (registerProviders != null) {
-			for(RegisterProvider provider : registerProviders.value()) {
-				registerSingleProvider(clientBuilder, provider);
-			}
-		}
+    private static final Logger LOG = Logger.getLogger(ProviderRegistrationUtil.class.getSimpleName());
 
-		// mp config providers
-		Optional<String> definedProviders = RegistrationConfigUtil.getConfigurationParameter(interfaceType,
-				"providers", String.class);
-		if (definedProviders.isPresent()) {
-			String[] providerNames = definedProviders.get().split(",");
+    public static void registerProviders(ClientBuilder clientBuilder, Class interfaceType) {
+        // annotation providers
+        RegisterProvider registerProvider = (RegisterProvider) interfaceType.getAnnotation(RegisterProvider.class);
+        if (registerProvider != null) {
+            registerSingleProvider(clientBuilder, registerProvider);
+        }
+        RegisterProviders registerProviders = (RegisterProviders) interfaceType.getAnnotation(RegisterProviders.class);
+        if (registerProviders != null) {
+            for (RegisterProvider provider : registerProviders.value()) {
+                registerSingleProvider(clientBuilder, provider);
+            }
+        }
 
-			for (String providerName : providerNames) {
-				Optional<Integer> providerPriority = RegistrationConfigUtil.getConfigurationParameter(interfaceType,
-						"providers/" + providerName + "/priority", Integer.class);
-				try {
-					if (providerPriority.isPresent()) {
-						clientBuilder.register(Class.forName(providerName), providerPriority.get());
-					} else {
-						clientBuilder.register(Class.forName(providerName));
-					}
-				} catch (ClassNotFoundException e) {
-					LOG.warning("Could not register provider " + providerName + ". Class not found.");
-				}
-			}
-		}
-	}
-	
-	public static void registerSingleProvider(ClientBuilder clientBuilder, RegisterProvider provider) {
-		Class<?> providerClass = provider.value();
-		int priority = provider.priority();
-		if (priority == -1) {
-			Priority priorityAnnotation = providerClass.getAnnotation(Priority.class);
-			if (priorityAnnotation != null) {
-				priority = priorityAnnotation.value();
-			}
-		}
-		
-		if (priority == -1) {
-			clientBuilder.register(providerClass);
-		} else {
-			clientBuilder.register(providerClass, priority);
-		}
-	}
-	
-	public static void registerProviders(RestClientBuilder restClientBuilder, Class interfaceType) {
-		RegisterProvider registerProvider = (RegisterProvider) interfaceType.getAnnotation(RegisterProvider.class);
-		if (registerProvider != null) {
-			registerSingleProvider(restClientBuilder, registerProvider);
-		}
-		RegisterProviders registerProviders = (RegisterProviders) interfaceType.getAnnotation(RegisterProviders.class);
-		if (registerProviders != null) {
-			for(RegisterProvider provider : registerProviders.value()) {
-				registerSingleProvider(restClientBuilder, provider);
-			}
-		}
-	}
-	
-	public static void registerProviders(RestClientBuilder restClientBuilder, Method method) {
-		registerProviders(restClientBuilder, method.getDeclaringClass());
-	}
-	
-	public static void registerSingleProvider(RestClientBuilder restClientBuilder, RegisterProvider provider) {
-		Class<?> providerClass = provider.value();
-		int priority = provider.priority();
-		if (priority == -1) {
-			Priority priorityAnnotation = providerClass.getAnnotation(Priority.class);
-			if (priorityAnnotation != null) {
-				priority = priorityAnnotation.value();
-			}
-		}
-		
-		if (priority == -1) {
-			restClientBuilder.register(providerClass);
-		} else {
-			restClientBuilder.register(providerClass, priority);
-		}
-	}
+        // mp config providers
+        Optional<String> definedProviders = RegistrationConfigUtil.getConfigurationParameter(interfaceType,
+                "providers", String.class);
+        if (definedProviders.isPresent()) {
+            String[] providerNames = definedProviders.get().split(",");
+
+            for (String providerName : providerNames) {
+                Optional<Integer> providerPriority = RegistrationConfigUtil.getConfigurationParameter(interfaceType,
+                        "providers/" + providerName + "/priority", Integer.class);
+                try {
+                    if (providerPriority.isPresent()) {
+                        clientBuilder.register(Class.forName(providerName), providerPriority.get());
+                    } else {
+                        clientBuilder.register(Class.forName(providerName));
+                    }
+                } catch (ClassNotFoundException e) {
+                    LOG.warning("Could not register provider " + providerName + ". Class not found.");
+                }
+            }
+        }
+    }
+
+    public static void registerSingleProvider(ClientBuilder clientBuilder, RegisterProvider provider) {
+        Class<?> providerClass = provider.value();
+        int priority = provider.priority();
+        if (priority == -1) {
+            Priority priorityAnnotation = providerClass.getAnnotation(Priority.class);
+            if (priorityAnnotation != null) {
+                priority = priorityAnnotation.value();
+            }
+        }
+
+        if (priority == -1) {
+            clientBuilder.register(providerClass);
+        } else {
+            clientBuilder.register(providerClass, priority);
+        }
+    }
+
+    public static void registerProviders(RestClientBuilder restClientBuilder, Class interfaceType) {
+        RegisterProvider registerProvider = (RegisterProvider) interfaceType.getAnnotation(RegisterProvider.class);
+        if (registerProvider != null) {
+            registerSingleProvider(restClientBuilder, registerProvider);
+        }
+        RegisterProviders registerProviders = (RegisterProviders) interfaceType.getAnnotation(RegisterProviders.class);
+        if (registerProviders != null) {
+            for (RegisterProvider provider : registerProviders.value()) {
+                registerSingleProvider(restClientBuilder, provider);
+            }
+        }
+    }
+
+    public static void registerProviders(RestClientBuilder restClientBuilder, Method method) {
+        registerProviders(restClientBuilder, method.getDeclaringClass());
+    }
+
+    public static void registerSingleProvider(RestClientBuilder restClientBuilder, RegisterProvider provider) {
+        Class<?> providerClass = provider.value();
+        int priority = provider.priority();
+        if (priority == -1) {
+            Priority priorityAnnotation = providerClass.getAnnotation(Priority.class);
+            if (priorityAnnotation != null) {
+                priority = priorityAnnotation.value();
+            }
+        }
+
+        if (priority == -1) {
+            restClientBuilder.register(providerClass);
+        } else {
+            restClientBuilder.register(providerClass, priority);
+        }
+    }
 }
