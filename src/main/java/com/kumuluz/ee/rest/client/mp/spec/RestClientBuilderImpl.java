@@ -55,7 +55,7 @@ import java.util.logging.Logger;
  */
 public class RestClientBuilderImpl implements RestClientBuilder {
 	
-	private Logger LOG = Logger.getLogger(RestClientBuilderImpl.class.getSimpleName());
+	private static final Logger LOG = Logger.getLogger(RestClientBuilderImpl.class.getSimpleName());
 	
 	private ClientBuilder clientBuilder;
 	private DeltaSpikeProxyInvocationHandler deltaSpikeProxyInvocationHandler;
