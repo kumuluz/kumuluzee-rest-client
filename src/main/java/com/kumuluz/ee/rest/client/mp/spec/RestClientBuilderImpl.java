@@ -23,15 +23,11 @@ package com.kumuluz.ee.rest.client.mp.spec;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.rest.client.mp.invoker.RestClientInvoker;
 import com.kumuluz.ee.rest.client.mp.proxy.RestClientProxyFactory;
-import com.kumuluz.ee.rest.client.mp.util.ExtendedConfiguration;
-import com.kumuluz.ee.rest.client.mp.util.InterfaceValidatorUtil;
-import com.kumuluz.ee.rest.client.mp.util.MapperDisabledUtil;
-import com.kumuluz.ee.rest.client.mp.util.ProviderRegistrationUtil;
+import com.kumuluz.ee.rest.client.mp.util.*;
 import org.apache.deltaspike.core.api.provider.BeanProvider;
 import org.apache.deltaspike.proxy.spi.DeltaSpikeProxy;
 import org.apache.deltaspike.proxy.spi.invocation.DeltaSpikeProxyInvocationHandler;
 import org.eclipse.jetty.client.WWWAuthenticationProtocolHandler;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
@@ -118,11 +114,14 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 			deltaSpikeProxy.setDelegateMethods(delegateMethods);
 			
 			if (baseURI == null) {
-				String urlFormat = String.format("%s/mp-rest/url", apiClass.getName());
-				URL urlConfig = ConfigProvider.getConfig()
-					.getOptionalValue(urlFormat, URL.class)
-					.orElseThrow(() -> new RestClientDefinitionException("Configuration key '" + urlFormat + "' is not set!"));
-				this.baseUrl(urlConfig);
+				Optional<URL> baseUrl = RegistrationConfigUtil.getConfigurationParameter(apiClass, "url",
+						URL.class);
+
+				if (baseUrl.isPresent()) {
+					this.baseUrl(baseUrl.get());
+				} else {
+					throw new RestClientDefinitionException("Base URL for " + apiClass +  " is not set!");
+				}
 			}
 			
 			ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);

@@ -27,13 +27,18 @@ import org.eclipse.microprofile.rest.client.annotation.RegisterProviders;
 import javax.annotation.Priority;
 import javax.ws.rs.client.ClientBuilder;
 import java.lang.reflect.Method;
+import java.util.Optional;
+import java.util.logging.Logger;
 
 /**
  * @author Miha Jamsek
  */
 public class ProviderRegistrationUtil {
+
+	private static final Logger LOG = Logger.getLogger(ProviderRegistrationUtil.class.getSimpleName());
 	
 	public static void registerProviders(ClientBuilder clientBuilder, Class interfaceType) {
+		// annotation providers
 		RegisterProvider registerProvider = (RegisterProvider) interfaceType.getAnnotation(RegisterProvider.class);
 		if (registerProvider != null) {
 			registerSingleProvider(clientBuilder, registerProvider);
@@ -42,6 +47,27 @@ public class ProviderRegistrationUtil {
 		if (registerProviders != null) {
 			for(RegisterProvider provider : registerProviders.value()) {
 				registerSingleProvider(clientBuilder, provider);
+			}
+		}
+
+		// mp config providers
+		Optional<String> definedProviders = RegistrationConfigUtil.getConfigurationParameter(interfaceType,
+				"providers", String.class);
+		if (definedProviders.isPresent()) {
+			String[] providerNames = definedProviders.get().split(",");
+
+			for (String providerName : providerNames) {
+				Optional<Integer> providerPriority = RegistrationConfigUtil.getConfigurationParameter(interfaceType,
+						"providers/" + providerName + "/priority", Integer.class);
+				try {
+					if (providerPriority.isPresent()) {
+						clientBuilder.register(Class.forName(providerName), providerPriority.get());
+					} else {
+						clientBuilder.register(Class.forName(providerName));
+					}
+				} catch (ClassNotFoundException e) {
+					LOG.warning("Could not register provider " + providerName + ". Class not found.");
+				}
 			}
 		}
 	}

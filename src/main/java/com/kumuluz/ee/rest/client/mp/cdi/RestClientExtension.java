@@ -21,12 +21,12 @@
 package com.kumuluz.ee.rest.client.mp.cdi;
 
 import com.kumuluz.ee.rest.client.mp.util.ProviderRegistrationUtil;
+import com.kumuluz.ee.rest.client.mp.util.RegistrationConfigUtil;
 import org.apache.deltaspike.core.api.literal.AnyLiteral;
 import org.apache.deltaspike.core.api.literal.DefaultLiteral;
 import org.apache.deltaspike.core.util.bean.BeanBuilder;
 import org.apache.deltaspike.partialbean.impl.PartialBeanProxyFactory;
 import org.apache.deltaspike.proxy.api.DeltaSpikeProxyContextualLifecycle;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
@@ -112,8 +112,8 @@ public class RestClientExtension implements Extension {
 	
 	private Class resolveScope(Class interfaceClass) {
 		
-		String scopeFormat = String.format("%s/mp-rest/scope", interfaceClass.getName());
-		Optional<String> scopeConfig = ConfigProvider.getConfig().getOptionalValue(scopeFormat, String.class);
+		Optional<String> scopeConfig = RegistrationConfigUtil.getConfigurationParameter(interfaceClass, "scope",
+				String.class);
 		
 		if (scopeConfig.isPresent()) {
 			try {
