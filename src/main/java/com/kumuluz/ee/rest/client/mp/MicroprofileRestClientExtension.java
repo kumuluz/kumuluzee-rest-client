@@ -28,7 +28,10 @@ import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
 import java.util.logging.Logger;
 
 /**
+ * KumuluzEE {@link Extension} for KumuluzEE Rest Client.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 @EeExtensionDef(name = "MicroprofileRestClient", group = "rest.client"/*EeExtensionGroup.REST_CLIENT*/)
 public class MicroprofileRestClientExtension implements Extension {

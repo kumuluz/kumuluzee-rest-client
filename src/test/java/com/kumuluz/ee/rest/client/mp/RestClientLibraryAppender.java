@@ -28,7 +28,10 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 
 /**
+ * Library appender for KumuluzEE Rest Client library.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class RestClientLibraryAppender extends CachedAuxilliaryArchiveAppender {
 

@@ -29,7 +29,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
 
 /**
+ * Utility for processing bean parameters.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class BeanParamProcessorUtil {
 

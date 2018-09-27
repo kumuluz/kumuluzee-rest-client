@@ -46,9 +46,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
+ * Invokes rest client for methods of interfaces annotated with
+ * {@link org.eclipse.microprofile.rest.client.inject.RegisterRestClient}.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
-
 public class RestClientInvoker implements InvocationHandler {
     private Client client;
     private String baseURI;

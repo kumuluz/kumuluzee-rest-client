@@ -28,7 +28,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Model for query parameter information.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 
 public class ParamInfo {

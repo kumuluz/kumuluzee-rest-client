@@ -26,7 +26,10 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 
 /**
+ * Library appender for Wiremock library.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class WiremockLibraryAppender extends CachedAuxilliaryArchiveAppender {
 

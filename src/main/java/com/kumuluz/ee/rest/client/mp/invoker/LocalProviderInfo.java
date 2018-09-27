@@ -21,7 +21,10 @@
 package com.kumuluz.ee.rest.client.mp.invoker;
 
 /**
+ * Model for provider and its priority.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 
 public class LocalProviderInfo<T> {

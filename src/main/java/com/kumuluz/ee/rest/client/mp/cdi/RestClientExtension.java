@@ -41,7 +41,10 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
+ * CDI {@link Extension} that adds dynamically created beans from interfaces annotated with {@link RegisterRestClient}.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 
 public class RestClientExtension implements Extension {

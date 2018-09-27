@@ -37,7 +37,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
+ * Validator utility for interfaces annotated with
+ * {@link org.eclipse.microprofile.rest.client.inject.RegisterRestClient}.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class InterfaceValidatorUtil {
 

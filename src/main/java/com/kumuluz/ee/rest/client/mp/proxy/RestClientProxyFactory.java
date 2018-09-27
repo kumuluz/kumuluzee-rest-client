@@ -27,7 +27,11 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 
 /**
+ * DeltaSpike proxy factory for interfaces annotated with
+ * {@link org.eclipse.microprofile.rest.client.inject.RegisterRestClient}.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class RestClientProxyFactory extends DeltaSpikeProxyFactory {
 

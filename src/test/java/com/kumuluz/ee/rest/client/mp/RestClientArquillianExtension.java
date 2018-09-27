@@ -24,7 +24,10 @@ import org.jboss.arquillian.container.test.spi.client.deployment.AuxiliaryArchiv
 import org.jboss.arquillian.core.spi.LoadableExtension;
 
 /**
+ * Arquillian extension that registers required library appenders.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class RestClientArquillianExtension implements LoadableExtension {
 

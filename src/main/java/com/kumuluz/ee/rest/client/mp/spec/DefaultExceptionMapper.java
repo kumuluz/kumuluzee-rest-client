@@ -27,7 +27,10 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 /**
+ * Default {@link ResponseExceptionMapper}.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class DefaultExceptionMapper implements ResponseExceptionMapper {
 

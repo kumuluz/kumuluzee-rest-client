@@ -30,7 +30,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Proxy with cache for invoking methods with {@link com.kumuluz.ee.rest.client.mp.invoker.RestClientInvoker}.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 
 @Dependent

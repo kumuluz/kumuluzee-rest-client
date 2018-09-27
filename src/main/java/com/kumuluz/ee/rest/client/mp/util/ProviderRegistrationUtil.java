@@ -31,7 +31,10 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
+ * Utility for provider registration with {@link RegisterProvider} and {@link RegisterProviders} annotations.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class ProviderRegistrationUtil {
 

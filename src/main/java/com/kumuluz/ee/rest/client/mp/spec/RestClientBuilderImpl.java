@@ -47,7 +47,10 @@ import java.util.*;
 import java.util.logging.Logger;
 
 /**
+ * Implementation of MicroProfile {@link RestClientBuilder}.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class RestClientBuilderImpl implements RestClientBuilder {
 

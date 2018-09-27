@@ -24,7 +24,10 @@ import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.spi.RestClientBuilderResolver;
 
 /**
+ * Provider for default {@link RestClientBuilder}.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class ClientBuilderResolver extends RestClientBuilderResolver {
     @Override

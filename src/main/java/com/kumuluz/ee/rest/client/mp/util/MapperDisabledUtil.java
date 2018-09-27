@@ -26,7 +26,10 @@ import javax.ws.rs.client.ClientBuilder;
 import java.util.Optional;
 
 /**
+ * Utility for checking if mapper is disabled.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class MapperDisabledUtil {
 

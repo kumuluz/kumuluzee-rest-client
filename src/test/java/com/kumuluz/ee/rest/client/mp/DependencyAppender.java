@@ -27,7 +27,10 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 /**
+ * Library appender for libraries required by tests.
+ *
  * @author Miha Jamsek
+ * @since 1.0.1
  */
 public class DependencyAppender implements MavenDependencyAppender {
 
