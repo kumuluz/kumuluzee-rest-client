@@ -23,6 +23,7 @@ package com.kumuluz.ee.rest.client.mp;
 import com.kumuluz.ee.common.Extension;
 import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.common.dependencies.EeExtensionDef;
+import com.kumuluz.ee.common.dependencies.EeExtensionGroup;
 import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
 
 import java.util.logging.Logger;
@@ -33,17 +34,17 @@ import java.util.logging.Logger;
  * @author Miha Jamsek
  * @since 1.0.1
  */
-@EeExtensionDef(name = "MicroprofileRestClient", group = "rest.client"/*EeExtensionGroup.REST_CLIENT*/)
+@EeExtensionDef(name = "MicroprofileRestClient", group = EeExtensionGroup.REST_CLIENT)
 public class MicroprofileRestClientExtension implements Extension {
 
     private static final Logger LOG = Logger.getLogger(MicroprofileRestClientExtension.class.getSimpleName());
 
     @Override
-    public void load() {
-        LOG.info("initializing Microprofile Rest Client 1.0.1");
+    public void init(KumuluzServerWrapper server, EeConfig eeConfig) {
+        LOG.info("Initializing Microprofile Rest Client 1.0.1");
     }
 
     @Override
-    public void init(KumuluzServerWrapper server, EeConfig eeConfig) {
+    public void load() {
     }
 }

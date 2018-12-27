@@ -10,17 +10,15 @@
 
     <name>KumuluzEE Microprofile Rest Client</name>
     <inceptionYear>2018</inceptionYear>
-    <description>Implementation of Microprofile Rest Client 1.0.1</description>
+    <description>Implementation of Microprofile Rest Client</description>
     <url>https://ee.kumuluz.com</url>
-
-    <packaging>jar</packaging>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <kumuluzee.version>2.5.3</kumuluzee.version>
+        <kumuluzee.version>3.0.0</kumuluzee.version>
         <microprofile.rest-client.version>1.0.1</microprofile.rest-client.version>
         <microprofile.config.version>1.2.1</microprofile.config.version>
         <deltaspike.version>1.8.1</deltaspike.version>
