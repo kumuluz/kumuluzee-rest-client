@@ -34,14 +34,14 @@ import java.util.logging.Logger;
  * @author Miha Jamsek
  * @since 1.0.1
  */
-@EeExtensionDef(name = "MicroprofileRestClient", group = EeExtensionGroup.REST_CLIENT)
+@EeExtensionDef(name = "MicroProfileRestClient", group = EeExtensionGroup.REST_CLIENT)
 public class MicroprofileRestClientExtension implements Extension {
 
     private static final Logger LOG = Logger.getLogger(MicroprofileRestClientExtension.class.getSimpleName());
 
     @Override
     public void init(KumuluzServerWrapper server, EeConfig eeConfig) {
-        LOG.info("Initializing Microprofile Rest Client 1.0.1");
+        LOG.info("Initializing MicroProfile Rest Client");
     }
 
     @Override

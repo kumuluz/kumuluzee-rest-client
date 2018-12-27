@@ -21,9 +21,9 @@
 package com.kumuluz.ee.rest.client.mp.util;
 
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.ConfigProvider;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
 
 /**
@@ -33,8 +33,6 @@ import java.util.*;
  * @since 1.0.1
  */
 public class RegistrationConfigUtil {
-
-    private static Config config = ConfigProvider.getConfig();
 
     private static Map<String, Integer> registrationToIndex;
 
@@ -73,7 +71,7 @@ public class RegistrationConfigUtil {
 
         Optional<T> param = Optional.empty();
         for (String key : keys) {
-            param = config.getOptionalValue(key, tClass);
+            param = getOptionalValue(key, tClass);
 
             if (param.isPresent()) {
                 break;
@@ -81,5 +79,28 @@ public class RegistrationConfigUtil {
         }
 
         return param;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Optional<T> getOptionalValue(String key, Class<T> tClass) {
+        ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
+
+        if (tClass.equals(String.class)) {
+            return (Optional<T>) configurationUtil.get(key);
+        } else if (tClass.equals(Integer.class)) {
+            return (Optional<T>) configurationUtil.getInteger(key);
+        } else if (tClass.equals(URL.class)) {
+            String url = configurationUtil.get(key).orElse(null);
+            if (url == null) {
+                return Optional.empty();
+            }
+            try {
+                return (Optional<T>) Optional.of(new URL(url));
+            } catch (MalformedURLException e) {
+                throw new IllegalArgumentException(String.format("Could not convert value %s to URL", url), e);
+            }
+        } else {
+            throw new IllegalArgumentException("Converter for " + tClass + " not found.");
+        }
     }
 }

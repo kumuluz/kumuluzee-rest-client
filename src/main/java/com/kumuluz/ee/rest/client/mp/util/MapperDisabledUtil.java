@@ -20,7 +20,7 @@
  */
 package com.kumuluz.ee.rest.client.mp.util;
 
-import org.eclipse.microprofile.config.ConfigProvider;
+import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 
 import javax.ws.rs.client.ClientBuilder;
 import java.util.Optional;
@@ -36,7 +36,7 @@ public class MapperDisabledUtil {
     private static final String DEFAULT_MAPPER_PROPERTY = "microprofile.rest.client.disable.default.mapper";
 
     public static boolean isMapperDisabled(ClientBuilder clientBuilder) {
-        Optional<Boolean> defaultMapperProp = ConfigProvider.getConfig().getOptionalValue(DEFAULT_MAPPER_PROPERTY, Boolean.class);
+        Optional<Boolean> defaultMapperProp = ConfigurationUtil.getInstance().getBoolean(DEFAULT_MAPPER_PROPERTY);
         if (defaultMapperProp.isPresent() && defaultMapperProp.get().equals(Boolean.TRUE)) {
             return true;
         } else {
