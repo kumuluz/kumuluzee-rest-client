@@ -1,15 +1,14 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
 
-<suite name="microprofile-rest-client-TCK" verbose="2" configfailurepolicy="continue" >
+<suite name="microprofile-rest-client-TCK" verbose="2">
     <test name="microprofile-rest-client TCK">
         <packages>
             <package name="org.eclipse.microprofile.rest.client.tck.*"/>
         </packages>
         <classes>
-            <class name="org.eclipse.microprofile.rest.client.tck.FeatureRegistrationTest">
+            <class name="org.eclipse.microprofile.rest.client.tck.asynctests.AsyncMethodTest">
                 <methods>
-                    <!-- this test is fixed in MP Rest Client 1.1 spec -->
-                    <exclude name="testFeatureRegistrationViaBuilder"/>
+                    <exclude name="testAsyncInvocationInterceptorProvider"/> <!-- fixed in MP 1.2 spec -->
                 </methods>
             </class>
         </classes>

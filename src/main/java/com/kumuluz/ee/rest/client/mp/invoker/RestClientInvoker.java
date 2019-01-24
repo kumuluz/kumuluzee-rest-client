@@ -21,7 +21,10 @@
 package com.kumuluz.ee.rest.client.mp.invoker;
 
 import com.kumuluz.ee.rest.client.mp.util.BeanParamProcessorUtil;
+import com.kumuluz.ee.rest.client.mp.util.DefaultExecutorServiceUtil;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptor;
+import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactory;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 
 import javax.json.Json;
@@ -38,11 +41,15 @@ import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
 import java.io.StringReader;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
+import java.net.URI;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -53,11 +60,16 @@ import java.util.stream.Collectors;
  * @since 1.0.1
  */
 public class RestClientInvoker implements InvocationHandler {
+
+    private static final Logger LOG = Logger.getLogger(RestClientInvoker.class.getName());
+
     private Client client;
     private String baseURI;
     private Configuration configuration;
+    private ExecutorService executorService;
 
-    public RestClientInvoker(Client client, String baseURI, Configuration configuration) {
+    public RestClientInvoker(Client client, String baseURI, Configuration configuration,
+                             ExecutorService executorService) {
         this.client = client;
 
         // Jersey uses lazy initialization for Feature configuration, MP spec requires Features to be configured
@@ -69,6 +81,7 @@ public class RestClientInvoker implements InvocationHandler {
 
         this.baseURI = baseURI;
         this.configuration = configuration;
+        this.executorService = executorService;
     }
 
     @Override
@@ -106,9 +119,9 @@ public class RestClientInvoker implements InvocationHandler {
 
         Map<String, Object> pathParams = paramInfo.getPathParameterValues();
         replacePathParamParameters(pathParams);
-        String url = uriBuilder.buildFromMap(pathParams).toString();
+        URI uri = uriBuilder.buildFromMap(pathParams);
 
-        Invocation.Builder request = client.target(url).request().headers(paramInfo.getHeaderValues());
+        Invocation.Builder request = client.target(uri).request().headers(paramInfo.getHeaderValues());
 
         for (Map.Entry<String, Object> entry : paramInfo.getCookieParameterValues().entrySet()) {
             request = request.cookie(entry.getKey(), (String) entry.getValue());
@@ -121,32 +134,88 @@ public class RestClientInvoker implements InvocationHandler {
             invocation = request.build(httpMethod);
         }
 
-        Object result = null;
-        Response response;
+        return invokeRequest(invocation, method);
+    }
 
-        try {
-            response = invocation.invoke();
-        } catch (ResponseProcessingException e) {
-            response = e.getResponse();
+    private Object invokeRequest(Invocation invocation, Method method) throws Throwable {
+
+        Type returnType = method.getGenericReturnType();
+
+        if (returnType instanceof ParameterizedType &&
+                ((ParameterizedType) returnType).getRawType().equals(CompletionStage.class)) {
+
+            // apply interceptors
+            List<AsyncInvocationInterceptor> interceptors = new ArrayList<>();
+            getProviders(AsyncInvocationInterceptorFactory.class).forEach(f -> interceptors.add(f.newInterceptor()));
+            interceptors.forEach(AsyncInvocationInterceptor::prepareContext);
+
+            CompletableFuture<Object> cf = new CompletableFuture<>();
+
+            ExecutorService executor = this.executorService;
+
+            if (executor == null) {
+                executor = DefaultExecutorServiceUtil.getExecutorService();
+            }
+
+            executor.submit(() -> {
+                interceptors.forEach(AsyncInvocationInterceptor::applyContext);
+
+                Response response = invocation.invoke();
+
+                try {
+                    handleExceptionMapping(response, Arrays.asList(method.getExceptionTypes()));
+                } catch (Throwable throwable) {
+                    cf.completeExceptionally(throwable);
+                }
+
+                Type[] typeArguments = ((ParameterizedType) returnType).getActualTypeArguments();
+                if (typeArguments.length != 1) {
+                    cf.completeExceptionally(new IllegalArgumentException("Could not resolve type argument: " +
+                            Arrays.toString(typeArguments)));
+                }
+
+                cf.complete(processResponse(typeArguments[0], response));
+            });
+
+            return cf;
+        } else {
+
+            Response response;
+
+            try {
+                response = invocation.invoke();
+            } catch (ResponseProcessingException e) {
+                response = e.getResponse();
+            }
+
+            handleExceptionMapping(response, Arrays.asList(method.getExceptionTypes()));
+
+            return processResponse(method.getReturnType(), response);
         }
+    }
 
-        handleExceptionMapping(response, Arrays.asList(method.getExceptionTypes()));
-
-        if (!void.class.equals(method.getReturnType())) {
-            if (method.getReturnType().equals(Response.class)) {
+    private Object processResponse(Type returnType, Response response) {
+        if (!void.class.equals(returnType)) {
+            if (returnType.equals(Response.class)) {
                 // get raw response
-                result = response;
+                return response;
             } else {
                 // get user defined entity
                 try {
-                    result = readResponseEntity(response, method.getReturnType());
+                    Class readType;
+                    if (returnType instanceof ParameterizedType) {
+                        readType = (Class) ((ParameterizedType) returnType).getRawType();
+                    } else {
+                        readType = (Class) returnType;
+                    }
+                    return readResponseEntity(response, readType);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LOG.log(Level.SEVERE, "Error processing response.", e);
                 }
             }
         }
 
-        return result;
+        return null;
     }
 
     private void replacePathParamParameters(Map<String, Object> pathParams) {
@@ -338,12 +407,12 @@ public class RestClientInvoker implements InvocationHandler {
 
     private boolean isSubResource(Class<?> clazz) {
         if (clazz.isInterface()) {
-            if (clazz.isAssignableFrom(JsonObject.class)) {
+            if (clazz.isAssignableFrom(JsonObject.class) ||
+                    clazz.isAssignableFrom(JsonArray.class) ||
+                    clazz.isAssignableFrom(CompletionStage.class)) {
                 return false;
             }
-            if (clazz.isAssignableFrom(JsonArray.class)) {
-                return false;
-            }
+
             return true;
         }
         return false;

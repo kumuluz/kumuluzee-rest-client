@@ -30,9 +30,11 @@ import org.apache.deltaspike.proxy.spi.invocation.DeltaSpikeProxyInvocationHandl
 import org.eclipse.jetty.client.WWWAuthenticationProtocolHandler;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
+import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactory;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
 
+import javax.annotation.Priority;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.CDI;
 import javax.ws.rs.Priorities;
@@ -44,6 +46,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 
 /**
@@ -60,6 +63,7 @@ public class RestClientBuilderImpl implements RestClientBuilder {
     private DeltaSpikeProxyInvocationHandler deltaSpikeProxyInvocationHandler;
     private BeanManager beanManager;
     private URI baseURI;
+    private ExecutorService executorService;
 
     private Set<Object> customProviders;
     private Map<Class, Map<Class<?>, Integer>> customProvidersContracts;
@@ -79,6 +83,23 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         } catch (URISyntaxException exc) {
             throw new RuntimeException(exc.getMessage());
         }
+    }
+
+    @Override
+    public RestClientBuilder baseUri(URI uri) {
+        this.baseURI = uri;
+        return this;
+    }
+
+    @Override
+    public RestClientBuilder executorService(ExecutorService executorService) {
+        if (executorService == null) {
+            throw new IllegalArgumentException("ExecutorService cannot be null. If you wish to use default executor " +
+                    "service, do not call this method.");
+        }
+
+        this.executorService = executorService;
+        return this;
     }
 
     public <T> T build(Class<T> apiClass) throws IllegalStateException, RestClientDefinitionException {
@@ -105,53 +126,57 @@ public class RestClientBuilderImpl implements RestClientBuilder {
     }
 
     private <T> T create(Class<T> apiClass, Class<T> proxyClass, Method[] delegateMethods) {
+        lazyinit();
+
+        T instance;
         try {
-
-            lazyinit();
-
-            T instance = proxyClass.newInstance();
-
-            DeltaSpikeProxy deltaSpikeProxy = (DeltaSpikeProxy) instance;
-            deltaSpikeProxy.setInvocationHandler(deltaSpikeProxyInvocationHandler);
-
-            deltaSpikeProxy.setDelegateMethods(delegateMethods);
-
-            if (baseURI == null) {
-                Optional<URL> baseUrl = RegistrationConfigUtil.getConfigurationParameter(apiClass, "url",
-                        URL.class);
-
-                if (baseUrl.isPresent()) {
-                    this.baseUrl(baseUrl.get());
-                } else {
-                    throw new RestClientDefinitionException("Base URL for " + apiClass + " is not set!");
-                }
-            }
-
-            ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);
-
-            if (!MapperDisabledUtil.isMapperDisabled(this.clientBuilder)) {
-                register(DefaultExceptionMapper.class);
-            }
-
-            Client client = clientBuilder.build();
-
-            if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.disable-jetty-www-auth")
-                    .orElse(false)) {
-                JettyConnectorProvider.getHttpClient(client).getProtocolHandlers()
-                        .remove(WWWAuthenticationProtocolHandler.NAME);
-            }
-
-            RestClientInvoker rcInvoker = new RestClientInvoker(
-                    client,
-                    baseURI.toString(),
-                    this.getConfiguration());
-            deltaSpikeProxy.setDelegateInvocationHandler(rcInvoker);
-
-            return instance;
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            instance = proxyClass.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException("Error creating proxy.", e);
         }
+
+        DeltaSpikeProxy deltaSpikeProxy = (DeltaSpikeProxy) instance;
+        deltaSpikeProxy.setInvocationHandler(deltaSpikeProxyInvocationHandler);
+
+        deltaSpikeProxy.setDelegateMethods(delegateMethods);
+
+        if (baseURI == null) {
+            Optional<URL> baseUrl = RegistrationConfigUtil.getConfigurationParameter(apiClass, "url",
+                    URL.class);
+            Optional<URI> baseUri = RegistrationConfigUtil.getConfigurationParameter(apiClass, "uri",
+                    URI.class);
+
+            if (baseUri.isPresent()) {
+                this.baseUri(baseUri.get());
+            } else if (baseUrl.isPresent()) {
+                this.baseUrl(baseUrl.get());
+            } else {
+                throw new IllegalStateException("Base URL for " + apiClass + " is not set!");
+            }
+        }
+
+        ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);
+
+        if (!MapperDisabledUtil.isMapperDisabled(this.clientBuilder)) {
+            register(DefaultExceptionMapper.class);
+        }
+
+        Client client = clientBuilder.build();
+
+        if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.disable-jetty-www-auth")
+                .orElse(false)) {
+            JettyConnectorProvider.getHttpClient(client).getProtocolHandlers()
+                    .remove(WWWAuthenticationProtocolHandler.NAME);
+        }
+
+        RestClientInvoker rcInvoker = new RestClientInvoker(
+                client,
+                baseURI.toString(),
+                this.getConfiguration(),
+                this.executorService);
+        deltaSpikeProxy.setDelegateInvocationHandler(rcInvoker);
+
+        return instance;
     }
 
     private void lazyinit() {
@@ -218,6 +243,9 @@ public class RestClientBuilderImpl implements RestClientBuilder {
             ResponseExceptionMapper mapper = (ResponseExceptionMapper) o;
             register(mapper, mapper.getPriority());
         }
+        if (o instanceof AsyncInvocationInterceptorFactory) {
+            registerCustomProvider(o, AsyncInvocationInterceptorFactory.class, getProviderPriority(o));
+        }
 
         this.clientBuilder.register(o);
 
@@ -229,6 +257,9 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 
         if (o instanceof ResponseExceptionMapper) {
             registerCustomProvider(o, ResponseExceptionMapper.class, i);
+        }
+        if (o instanceof AsyncInvocationInterceptorFactory) {
+            registerCustomProvider(o, AsyncInvocationInterceptorFactory.class, i);
         }
 
         this.clientBuilder.register(o, i);
@@ -247,6 +278,8 @@ public class RestClientBuilderImpl implements RestClientBuilder {
                     priority = ((ResponseExceptionMapper) o).getPriority();
                 }
                 registerCustomProvider(o, ResponseExceptionMapper.class, priority);
+            } else if (clazz.isAssignableFrom(AsyncInvocationInterceptorFactory.class)) {
+                registerCustomProvider(o, AsyncInvocationInterceptorFactory.class, Priorities.USER);
             } else {
                 nonCustomProviders.add(clazz);
             }
@@ -264,6 +297,8 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         for (Class<?> clazz : map.keySet()) {
             if (clazz.isAssignableFrom(ResponseExceptionMapper.class)) {
                 registerCustomProvider(o, ResponseExceptionMapper.class, map.get(clazz));
+            } else if (clazz.isAssignableFrom(AsyncInvocationInterceptorFactory.class)) {
+                registerCustomProvider(o, AsyncInvocationInterceptorFactory.class, map.get(clazz));
             } else {
                 nonCustomProviders.put(clazz, map.get(clazz));
             }
@@ -291,5 +326,15 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         }
 
         return true;
+    }
+
+    private int getProviderPriority(Object provider) {
+        Priority p = provider.getClass().getAnnotation(Priority.class);
+
+        if (p != null) {
+            return p.value();
+        }
+
+        return Priorities.USER;
     }
 }

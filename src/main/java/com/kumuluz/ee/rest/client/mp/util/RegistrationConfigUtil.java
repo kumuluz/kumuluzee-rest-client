@@ -23,6 +23,7 @@ package com.kumuluz.ee.rest.client.mp.util;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.*;
 
@@ -99,6 +100,12 @@ public class RegistrationConfigUtil {
             } catch (MalformedURLException e) {
                 throw new IllegalArgumentException(String.format("Could not convert value %s to URL", url), e);
             }
+        } else if (tClass.equals(URI.class)) {
+            String url = configurationUtil.get(key).orElse(null);
+            if (url == null) {
+                return Optional.empty();
+            }
+            return (Optional<T>) Optional.of(URI.create(url));
         } else {
             throw new IllegalArgumentException("Converter for " + tClass + " not found.");
         }
