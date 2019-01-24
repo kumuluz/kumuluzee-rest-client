@@ -82,6 +82,8 @@ The following providers are supported:
 - `ParamConverter` - allows conversion of request/response parameters to and from `String`.
 - `ReaderInterceptor` and `WriterInterceptor` - listeners for when a read/write occurs.
 - `ResponseExceptionMapper` - maps received `Response` to a `Throwable` that is thrown by runtime.
+- `AsyncInvocationInterceptorFactory` - creates interceptor for manipulating the thread in which asynchronous calls are
+executed
 
 #### Provider registration
 
@@ -131,6 +133,42 @@ kumuluzee:
 The `class` property identifies the definition of rest client by its class name. The `url` property defines the base URL
 for generated rest clients and the `providers` property is a comma separated list of providers, that are added to the
 generated rest clients.
+
+### Making asynchronous requests
+
+In order to make requests asynchronously the method in the API interface should return parameterized type
+`CompletionStage`. For example:
+
+```java
+@POST
+CompletionStage<Void> createCustomerAsynch(Customer customer);
+```
+
+The defined method can then be used to make asynchronous requests. For example:
+
+```java
+customerApi.createCustomerAsynch(c)
+    .toCompletableFuture().get();
+```
+
+### Intercepting new client builders
+
+When a new client is being built it can be intercepted with a SPI interface `RestClientBuilderListener`. This includes
+the builders that are created in the CDI environment at the start of the application (interfaces annotated with
+`@RegisterRestClient`). For example:
+
+```java
+public class BuilderListener implements RestClientBuilderListener {
+
+    @Override
+    public void onNewBuilder(RestClientBuilder builder) {
+        // ...
+    }
+}
+```
+
+Remember to register the listener in the service file named
+`org.eclipse.microprofile.rest.client.spi.RestClientBuilderListener`.
 
 ## Changelog
 
