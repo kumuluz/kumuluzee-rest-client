@@ -18,7 +18,7 @@ MicroProfile Rest Client can be added via the following Maven dependency:
 <dependency>
     <groupId>com.kumuluz.ee.rest-client</groupId>
     <artifactId>kumuluzee-rest-client</artifactId>
-    <version>${rest-client.version}</version>
+    <version>${kumuluzee-rest-client.version}</version>
 </dependency>
 ```
 
