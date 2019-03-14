@@ -22,31 +22,30 @@ package com.kumuluz.ee.rest.client.mp.spec;
 
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.rest.client.mp.invoker.RestClientInvoker;
-import com.kumuluz.ee.rest.client.mp.proxy.RestClientProxyFactory;
+import com.kumuluz.ee.rest.client.mp.providers.CustomJsonValueBodyReader;
+import com.kumuluz.ee.rest.client.mp.providers.CustomJsonValueBodyWriter;
 import com.kumuluz.ee.rest.client.mp.util.*;
-import org.apache.deltaspike.core.api.provider.BeanProvider;
-import org.apache.deltaspike.proxy.spi.DeltaSpikeProxy;
-import org.apache.deltaspike.proxy.spi.invocation.DeltaSpikeProxyInvocationHandler;
 import org.eclipse.jetty.client.WWWAuthenticationProtocolHandler;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
 import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactory;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import org.eclipse.microprofile.rest.client.spi.RestClientListener;
 import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
 
 import javax.annotation.Priority;
-import javax.enterprise.inject.spi.BeanManager;
-import javax.enterprise.inject.spi.CDI;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.Configuration;
-import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 /**
@@ -60,19 +59,26 @@ public class RestClientBuilderImpl implements RestClientBuilder {
     private static final Logger LOG = Logger.getLogger(RestClientBuilderImpl.class.getSimpleName());
 
     private ClientBuilder clientBuilder;
-    private DeltaSpikeProxyInvocationHandler deltaSpikeProxyInvocationHandler;
-    private BeanManager beanManager;
     private URI baseURI;
     private ExecutorService executorService;
+    private long connectTimeout;
+    private TimeUnit connectTimeoutUnit;
+    private long readTimeout;
+    private TimeUnit readTimeoutUnit;
 
     private Set<Object> customProviders;
     private Map<Class, Map<Class<?>, Integer>> customProvidersContracts;
+
+    private List<RestClientListener> restClientListeners;
 
     RestClientBuilderImpl() {
         clientBuilder = ClientBuilder.newBuilder();
 
         customProviders = new HashSet<>();
         customProvidersContracts = new HashMap<>();
+
+        restClientListeners = new ArrayList<>();
+        ServiceLoader.load(RestClientListener.class).iterator().forEachRemaining(rcl -> restClientListeners.add(rcl));
     }
 
     @Override
@@ -92,6 +98,20 @@ public class RestClientBuilderImpl implements RestClientBuilder {
     }
 
     @Override
+    public RestClientBuilder connectTimeout(long l, TimeUnit timeUnit) {
+        this.connectTimeout = l;
+        this.connectTimeoutUnit = timeUnit;
+        return this;
+    }
+
+    @Override
+    public RestClientBuilder readTimeout(long l, TimeUnit timeUnit) {
+        this.readTimeout = l;
+        this.readTimeoutUnit = timeUnit;
+        return this;
+    }
+
+    @Override
     public RestClientBuilder executorService(ExecutorService executorService) {
         if (executorService == null) {
             throw new IllegalArgumentException("ExecutorService cannot be null. If you wish to use default executor " +
@@ -103,9 +123,13 @@ public class RestClientBuilderImpl implements RestClientBuilder {
     }
 
     public <T> T build(Class<T> apiClass) throws IllegalStateException, RestClientDefinitionException {
-        InterfaceValidatorUtil.validateApiInterface(apiClass);
 
-        RestClientProxyFactory proxyFactory = RestClientProxyFactory.getInstance();
+        register(CustomJsonValueBodyReader.class, 6000);
+        register(CustomJsonValueBodyWriter.class, 6000);
+
+        this.restClientListeners.forEach(rcl -> rcl.onNewClient(apiClass, this));
+
+        InterfaceValidatorUtil.validateApiInterface(apiClass);
 
         if (!isRunningInContainer()) {
             // fixes exception in InvokeWithJsonPProviderTest, which happens when @BeforeTest gets executed on client
@@ -117,42 +141,60 @@ public class RestClientBuilderImpl implements RestClientBuilder {
             return null;
         }
 
-        beanManager = CDI.current().getBeanManager();
-
-        Class<T> proxyClass = proxyFactory.getProxyClass(beanManager, apiClass);
-        Method[] delegateMethods = proxyFactory.getDelegateMethods(apiClass);
-
-        return this.create(apiClass, proxyClass, delegateMethods);
+        return this.create(apiClass);
     }
 
-    private <T> T create(Class<T> apiClass, Class<T> proxyClass, Method[] delegateMethods) {
-        lazyinit();
-
-        T instance;
-        try {
-            instance = proxyClass.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException("Error creating proxy.", e);
-        }
-
-        DeltaSpikeProxy deltaSpikeProxy = (DeltaSpikeProxy) instance;
-        deltaSpikeProxy.setInvocationHandler(deltaSpikeProxyInvocationHandler);
-
-        deltaSpikeProxy.setDelegateMethods(delegateMethods);
+    private <T> T create(Class<T> apiClass) {
 
         if (baseURI == null) {
             Optional<URL> baseUrl = RegistrationConfigUtil.getConfigurationParameter(apiClass, "url",
-                    URL.class);
+                    URL.class, true);
             Optional<URI> baseUri = RegistrationConfigUtil.getConfigurationParameter(apiClass, "uri",
-                    URI.class);
+                    URI.class, true);
 
             if (baseUri.isPresent()) {
                 this.baseUri(baseUri.get());
             } else if (baseUrl.isPresent()) {
                 this.baseUrl(baseUrl.get());
-            } else {
-                throw new IllegalStateException("Base URL for " + apiClass + " is not set!");
             }
+        }
+        if (baseURI == null) {
+            if (apiClass.getAnnotation(RegisterRestClient.class) != null) {
+                String baseUri = apiClass.getAnnotation(RegisterRestClient.class).baseUri();
+                if (!baseUri.isEmpty()) {
+                    try {
+                        this.baseUri(new URI(baseUri));
+                    } catch (URISyntaxException ignored) {
+                    }
+                }
+            }
+        }
+        if (baseURI == null) {
+            throw new IllegalStateException("Base URL for " + apiClass + " is not set!");
+        }
+
+        if (connectTimeoutUnit == null) {
+            Optional<Long> connectTimeout = RegistrationConfigUtil.getConfigurationParameter(apiClass,
+                    "connectTimeout", Long.class, true);
+            if (connectTimeout.isPresent()) {
+                this.connectTimeout = connectTimeout.get();
+                this.connectTimeoutUnit = TimeUnit.MILLISECONDS;
+            }
+        }
+        if (readTimeoutUnit == null) {
+            Optional<Long> readTimeout = RegistrationConfigUtil.getConfigurationParameter(apiClass,
+                    "readTimeout", Long.class, true);
+            if (readTimeout.isPresent()) {
+                this.readTimeout = readTimeout.get();
+                this.readTimeoutUnit = TimeUnit.MILLISECONDS;
+            }
+        }
+        if (this.connectTimeoutUnit != null) {
+            this.clientBuilder.connectTimeout(TimeUnit.MILLISECONDS.convert(connectTimeout, connectTimeoutUnit) / 4,
+                    TimeUnit.MILLISECONDS);
+        }
+        if (this.readTimeoutUnit != null) {
+            this.clientBuilder.readTimeout(readTimeout, readTimeoutUnit);
         }
 
         ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);
@@ -174,21 +216,8 @@ public class RestClientBuilderImpl implements RestClientBuilder {
                 baseURI.toString(),
                 this.getConfiguration(),
                 this.executorService);
-        deltaSpikeProxy.setDelegateInvocationHandler(rcInvoker);
 
-        return instance;
-    }
-
-    private void lazyinit() {
-        if (deltaSpikeProxyInvocationHandler == null) {
-            init();
-        }
-    }
-
-    private synchronized void init() {
-        if (deltaSpikeProxyInvocationHandler == null) {
-            deltaSpikeProxyInvocationHandler = BeanProvider.getContextualReference(beanManager, DeltaSpikeProxyInvocationHandler.class, false);
-        }
+        return (T) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class[] {apiClass}, rcInvoker);
     }
 
     @Override

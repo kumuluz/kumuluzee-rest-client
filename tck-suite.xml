@@ -6,9 +6,29 @@
             <package name="org.eclipse.microprofile.rest.client.tck.*"/>
         </packages>
         <classes>
-            <class name="org.eclipse.microprofile.rest.client.tck.asynctests.AsyncMethodTest">
+            <class name="org.eclipse.microprofile.rest.client.tck.InvokeWithRegisteredProvidersTest">
                 <methods>
-                    <exclude name="testAsyncInvocationInterceptorProvider"/> <!-- fixed in MP 1.2 spec -->
+                    <exclude name=".*"/>
+                </methods>
+            </class>
+            <class name="org.eclipse.microprofile.rest.client.tck.InvokeWithBuiltProvidersTest">
+                <methods>
+                    <exclude name=".*"/>
+                </methods>
+            </class>
+            <class name="org.eclipse.microprofile.rest.client.tck.cditests.CDIInvokeWithRegisteredProvidersTest">
+                <methods>
+                    <exclude name=".*"/>
+                </methods>
+            </class>
+            <class name="org.eclipse.microprofile.rest.client.tck.ClientHeadersFactoryTest">
+                <methods>
+                    <exclude name="testClientHeadersFactoryInvoked"/>
+                </methods>
+            </class>
+            <class name="org.eclipse.microprofile.rest.client.tck.ClientHeaderParamTest">
+                <methods>
+                    <exclude name="testHeaderNotSentWhenExceptionThrownAndRequiredIsFalse"/>
                 </methods>
             </class>
         </classes>

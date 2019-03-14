@@ -58,7 +58,7 @@ public class BeanParamProcessorUtil {
                 if (field.isAnnotationPresent(HeaderParam.class)) {
                     HeaderParam headerParam = field.getAnnotation(HeaderParam.class);
                     field.setAccessible(true);
-                    paramInfo.addHeader(headerParam.value(), field.get(instance));
+                    paramInfo.addHeader(headerParam.value(), (String) field.get(instance));
                 }
                 if (field.isAnnotationPresent(CookieParam.class)) {
                     CookieParam cookieParam = field.getAnnotation(CookieParam.class);

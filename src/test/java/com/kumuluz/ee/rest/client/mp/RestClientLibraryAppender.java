@@ -21,6 +21,7 @@
 package com.kumuluz.ee.rest.client.mp;
 
 import com.kumuluz.ee.rest.client.mp.cdi.RestClientExtension;
+import com.kumuluz.ee.rest.client.mp.config.RestClientConfigExtension;
 import com.kumuluz.ee.rest.client.mp.spec.ClientBuilderResolver;
 import org.jboss.arquillian.container.test.spi.client.deployment.CachedAuxilliaryArchiveAppender;
 import org.jboss.shrinkwrap.api.Archive;
@@ -38,9 +39,10 @@ public class RestClientLibraryAppender extends CachedAuxilliaryArchiveAppender {
     @Override
     protected Archive<?> buildArchive() {
 
-        return ShrinkWrap.create(JavaArchive.class, "kumuluzee-rest-client-mp.jar")
+        return ShrinkWrap.create(JavaArchive.class, "kumuluzee-rest-client-0.0.0.jar")
                 .addPackages(true, MicroprofileRestClientExtension.class.getPackage())
                 .addAsServiceProvider(com.kumuluz.ee.common.Extension.class, MicroprofileRestClientExtension.class)
+                .addAsServiceProvider(com.kumuluz.ee.common.ConfigExtension.class, RestClientConfigExtension.class)
                 .addAsServiceProvider(javax.enterprise.inject.spi.Extension.class, RestClientExtension.class)
                 .addAsServiceProvider(org.eclipse.microprofile.rest.client.spi.RestClientBuilderResolver.class,
                         ClientBuilderResolver.class)

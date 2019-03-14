@@ -18,27 +18,28 @@
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.kumuluz.ee.rest.client.mp.proxy;
+package com.kumuluz.ee.rest.client.mp.providers;
 
-import org.apache.deltaspike.partialbean.impl.PartialBeanProxyFactory;
+import org.glassfish.json.jaxrs.JsonValueBodyWriter;
+
+import javax.json.JsonValue;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Type;
 
 /**
- * DeltaSpike proxy factory for interfaces annotated with
- * {@link org.eclipse.microprofile.rest.client.inject.RegisterRestClient}.
+ * {@link javax.ws.rs.ext.MessageBodyWriter} for {@link JsonValue} that also accepts default MediaType.
  *
- * @author Miha Jamsek
- * @since 1.0.1
+ * @author Urban Malc
+ * @since 1.2.0
  */
-public class RestClientProxyFactory extends PartialBeanProxyFactory {
+@Produces(MediaType.APPLICATION_JSON)
+public class CustomJsonValueBodyWriter extends JsonValueBodyWriter {
 
-    /**
-     * We usually check if a class is proxied by checking if its name contains String "$Proxy". This ensures proper
-     * detection across the framework.
-     *
-     * @return proxy class suffix
-     */
     @Override
-    protected String getProxyClassSuffix() {
-        return "$$ProxyDSPartialBean";
+    public boolean isWriteable(Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType) {
+        return JsonValue.class.isAssignableFrom(aClass) && mediaType == null ||
+                super.isWriteable(aClass, type, annotations, mediaType);
     }
 }
