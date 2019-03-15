@@ -55,6 +55,10 @@ public class InterfaceValidatorUtil {
     public static <T> void validateApiInterface(Class<T> apiClass) {
         checkForMultipleHttpMethods(apiClass.getMethods());
         checkForMatchingParams(apiClass);
+
+        for (Method m : apiClass.getMethods()) {
+            ClientHeaderParamUtil.validateClientHeaderParams(m);
+        }
     }
 
     private static <T> void checkForMatchingParams(Class<T> apiClass) {

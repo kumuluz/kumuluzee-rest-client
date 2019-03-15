@@ -18,44 +18,43 @@
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.kumuluz.ee.rest.client.mp;
+package com.kumuluz.ee.rest.client.mp.config;
 
-import com.kumuluz.ee.common.Extension;
+import com.kumuluz.ee.common.ConfigExtension;
 import com.kumuluz.ee.common.config.EeConfig;
-import com.kumuluz.ee.common.dependencies.*;
+import com.kumuluz.ee.common.dependencies.EeExtensionDef;
+import com.kumuluz.ee.common.dependencies.EeExtensionGroup;
 import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
+import com.kumuluz.ee.configuration.ConfigurationSource;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
- * KumuluzEE {@link Extension} for KumuluzEE Rest Client.
+ * Registers {@link RestClientConfigMapper} configuration source.
  *
- * @author Miha Jamsek
- * @since 1.0.1
+ * @author Urban Malc
+ * @since 1.0.0
  */
-@EeExtensionDef(name = "MicroProfileRestClient", group = EeExtensionGroup.REST_CLIENT)
-@EeComponentDependencies({
-        @EeComponentDependency(EeComponentType.CDI),
-        @EeComponentDependency(EeComponentType.JAX_RS),
-        @EeComponentDependency(EeComponentType.JSON_P)
-})
-public class MicroprofileRestClientExtension implements Extension {
+@EeExtensionDef(name = "RestClientMp", group = EeExtensionGroup.CONFIG)
+public class RestClientConfigExtension implements ConfigExtension {
+    @Override
+    public void load() {
 
-    private static final Logger LOG = Logger.getLogger(MicroprofileRestClientExtension.class.getSimpleName());
+    }
 
     @Override
     public void init(KumuluzServerWrapper server, EeConfig eeConfig) {
-        LOG.info("Initializing MicroProfile Rest Client");
+
     }
 
     @Override
-    public void load() {
+    public ConfigurationSource getConfigurationSource() {
+        return null;
     }
 
     @Override
-    public List<String> scanLibraries() {
-        return Collections.singletonList("kumuluzee-rest-client");
+    public List<ConfigurationSource> getConfigurationSources() {
+        return Collections.singletonList(new RestClientConfigMapper());
     }
 }

@@ -55,13 +55,13 @@ public class ProviderRegistrationUtil {
 
         // mp config providers
         Optional<String> definedProviders = RegistrationConfigUtil.getConfigurationParameter(interfaceType,
-                "providers", String.class);
+                "providers", String.class, true);
         if (definedProviders.isPresent()) {
             String[] providerNames = definedProviders.get().split(",");
 
             for (String providerName : providerNames) {
                 Optional<Integer> providerPriority = RegistrationConfigUtil.getConfigurationParameter(interfaceType,
-                        "providers/" + providerName + "/priority", Integer.class);
+                        "providers/" + providerName + "/priority", Integer.class, false);
                 try {
                     if (providerPriority.isPresent()) {
                         clientBuilder.register(Class.forName(providerName), providerPriority.get());

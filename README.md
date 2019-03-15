@@ -43,9 +43,9 @@ public interface SimpleApi {
 
 Defined rest client can be generated programmatically or injected using CDI.
 
-#### Generating rest client programatically
+#### Generating rest client programmatically
 
-Rest client can be built programmantically anywhere in application code.
+Rest client can be built programmatically anywhere in application code.
 
 ```java
 SimpleApi simpleApi = RestClientBuilder
@@ -65,8 +65,8 @@ boilerplate.
 SimpleApi simpleApi;
 ```
 
-If you are using CDI injection to create rest client, you must annotate your interface with `@RegisterRestClient` and
-define the base URL using configuration parameter as described below.
+If you are using CDI injection to create rest client, you must annotate your interface with `@RegisterRestClient`. The
+URL of the api can be supplied with the annotation parameter or using configuration parameter as described below.
 
 ### Using providers
 
@@ -128,6 +128,8 @@ kumuluzee:
       - class: cdi.api.TodoApi
         url: https://jsonplaceholder.typicode.com
         providers: com.example.providers.Provider1,com.example.providers.Provider2
+        connect-timeout: 1000
+        read-timeout: 5000
 ```
 
 The `class` property identifies the definition of rest client by its class name. The `url` property defines the base URL
@@ -151,6 +153,86 @@ customerApi.createCustomerAsynch(c)
     .toCompletableFuture().get();
 ```
 
+### Adding headers on the API interface
+
+Headers can be added to request in multiple ways. You can use the JAX-RS `@HeaderParam` parameter annotation. For
+example:
+
+```java
+@GET
+List<User> getUsers(@HeaderParam("Authorization") String authorization);
+```
+
+If using a parameter for header creation is not desirable using `@ClientHeaderParam` annotation on API interface or
+method is also supported. For example:
+
+```java
+@POST
+@ClientHeaderParam(name="X-Http-Method-Override", value="PUT")
+Response sentPUTviaPOST(MyEntity entity);
+```
+
+The value of the `@ClientHeaderParam` can also use a method reference to generate header values. For example:
+
+```java
+@Path("/somePath")
+public interface MyClient {
+  @POST
+  @ClientHeaderParam(name="X-Request-ID", value="{generateRequestId}")
+  Response postWithRequestId(MyEntity entity);
+  
+  @GET
+  @ClientHeaderParam(name="CustomHeader", value="{some.pkg.MyHeaderGenerator.generateCustomHeader}", required=false)
+  Response getWithoutCustomHeader();
+  
+  default String generateRequestId() {
+    return UUID.randomUUID().toString();
+  }
+}
+```
+
+The method reference can point to a default method defined in the API or a public static method in a different class.
+If `required` parameter is set to `true` and the generator method throws an exception, the request will fail. If
+`required` parameter is set to `false` and the generator method throws an exception, the request will not fail but
+(unsuccessfully) generated header will not be sent. Default value is `true`.
+
+Generator method must have zero arguments or one `String` argument (name of the header) and should return a `String`
+representing the header value or `String[]` representing multiple header values.
+
+### Propagating headers
+
+KumuluzEE Rest Client supports propagation of headers from incoming requests to the outgoing requests. To enable this
+feature annotate the API interface with the `@RegisterClientHeaders` annotation. Then specify the headers that should be
+propagated in the configuration. For example to forward the _Authorization_ header put the following configuration in
+_config.yaml_:
+
+```yaml
+kumuluzee:
+  rest-client:
+    propagate-headers: Authorization
+```
+
+__NOTE:__ Header propagation requires the [KumuluzEE Config MicroProfile](https://github.com/kumuluz/kumuluzee-config-mp)
+dependency!
+
+If more control is needed, an implementation of `ClientHeadersFactory` can be used by registering it in the
+`@RegisterClientHeaders` parameter. Example implementation:
+
+```java
+public class ExampleHeadersFactory implements ClientHeadersFactory {
+    @Override
+    public MultivaluedMap<String, String> update(MultivaluedMap<String, String> incomingHeaders,
+                                                 MultivaluedMap<String, String> clientOutgoingHeaders) {
+        // incomingHeaders - headers from the JAX-RS request
+        // clientOutgoingHeaders - headers specified on the API interface
+        // should return a map of headers which should actually be sent when making a request
+    }
+}
+```
+
+Note that this disables the default propagation, header propagation should be handled manually in the factory
+implementation. This approach also doesn't require the KumuluzEE Config MicroProfile dependency.
+
 ### Intercepting new client builders
 
 When a new client is being built it can be intercepted with a SPI interface `RestClientBuilderListener`. This includes
@@ -169,6 +251,11 @@ public class BuilderListener implements RestClientBuilderListener {
 
 Remember to register the listener in the service file named
 `org.eclipse.microprofile.rest.client.spi.RestClientBuilderListener`.
+
+A similar interface supported since 1.2.0 is the `RestClientListener` interface. The difference between the two is that
+the `RestClientBuilderListener` implementations are called when a new builder is created and the `RestClientListener`
+implementations are called when the _build_ method is called on the builder. The latter also exposes the service
+interface class.
 
 ## Changelog
 

@@ -20,6 +20,7 @@
  */
 package com.kumuluz.ee.rest.client.mp.cdi;
 
+import com.kumuluz.ee.rest.client.mp.proxy.RestClientProxyFactory;
 import com.kumuluz.ee.rest.client.mp.util.ProviderRegistrationUtil;
 import com.kumuluz.ee.rest.client.mp.util.RegistrationConfigUtil;
 import org.apache.deltaspike.core.api.literal.AnyLiteral;
@@ -36,6 +37,7 @@ import javax.enterprise.context.*;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.*;
 import javax.inject.Singleton;
+import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -68,17 +70,17 @@ public class RestClientExtension implements Extension {
 
     public <T> void afterBean(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager) {
         for (AnnotatedType anType : this.classes) {
-            DeltaSpikeProxyContextualLifecycle lifecycle = new DeltaSpikeProxyContextualLifecycle(
-                    anType.getJavaClass(),
+            DeltaSpikeProxyContextualLifecycle<T, InjectableRestClientHandler> lifecycle = new DeltaSpikeProxyContextualLifecycle<>(
+                    (Class<T>) anType.getJavaClass(),
                     InjectableRestClientHandler.class,
-                    PartialBeanProxyFactory.getInstance(),
+                    RestClientProxyFactory.getInstance(),
                     beanManager
             );
 
-            Class scopeClass = resolveScope(anType.getJavaClass());
+            Class<? extends Annotation> scopeClass = resolveScope(anType.getJavaClass());
 
             BeanBuilder<T> beanBuilder = new BeanBuilder<T>(beanManager)
-                    .readFromType(anType)
+                    .readFromType((AnnotatedType<T>) anType)
                     .qualifiers(new RestClient.RestClientLiteral(), new DefaultLiteral(), new AnyLiteral())
                     .passivationCapable(true)
                     .scope(scopeClass)
@@ -113,14 +115,14 @@ public class RestClientExtension implements Extension {
         this.classes.add(annotatedType);
     }
 
-    private Class resolveScope(Class interfaceClass) {
+    private Class<? extends Annotation> resolveScope(Class interfaceClass) {
 
         Optional<String> scopeConfig = RegistrationConfigUtil.getConfigurationParameter(interfaceClass, "scope",
-                String.class);
+                String.class, true);
 
         if (scopeConfig.isPresent()) {
             try {
-                return Class.forName(scopeConfig.get());
+                return (Class<? extends Annotation>) Class.forName(scopeConfig.get());
             } catch (ClassNotFoundException e) {
                 return Dependent.class;
             }
@@ -142,5 +144,4 @@ public class RestClientExtension implements Extension {
         }
 
     }
-
 }

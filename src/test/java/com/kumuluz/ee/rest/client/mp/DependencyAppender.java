@@ -43,21 +43,20 @@ public class DependencyAppender implements MavenDependencyAppender {
 
         libs.add("com.kumuluz.ee:kumuluzee-jax-rs-jersey:");
         libs.add("com.kumuluz.ee:kumuluzee-json-p-jsonp:");
+        libs.add("org.glassfish.jersey.media:jersey-media-json-processing:" +
+                versionsBundle.getString("jersey-media-version"));
         libs.add("com.kumuluz.ee.config:kumuluzee-config-mp:" +
                 versionsBundle.getString("kumuluzee-config-mp-version"));
 
         libs.add("org.eclipse.microprofile.rest.client:microprofile-rest-client-api:" +
                 versionsBundle.getString("microprofile-rest-client-version"));
+        libs.add("org.eclipse.microprofile.fault-tolerance:microprofile-fault-tolerance-api:" +
+                versionsBundle.getString("microprofile-fault-tolerance-version"));
 
         libs.add("org.hamcrest:hamcrest-all:" + versionsBundle.getString("hamcrest-version"));
 
-        final String DELTA_SPIKE_VERSION = versionsBundle.getString("deltaspike-version");
-        libs.add("org.apache.deltaspike.core:deltaspike-core-api:" +
-                DELTA_SPIKE_VERSION);
-        libs.add("org.apache.deltaspike.core:deltaspike-core-impl:" +
-                DELTA_SPIKE_VERSION);
         libs.add("org.apache.deltaspike.modules:deltaspike-partial-bean-module-impl:" +
-                DELTA_SPIKE_VERSION);
+                versionsBundle.getString("deltaspike-version"));
 
         return libs;
     }

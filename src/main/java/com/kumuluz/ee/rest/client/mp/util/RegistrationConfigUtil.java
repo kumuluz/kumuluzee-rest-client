@@ -57,7 +57,8 @@ public class RegistrationConfigUtil {
         }
     }
 
-    public static <T> Optional<T> getConfigurationParameter(Class<?> registration, String property, Class<T> tClass) {
+    public static <T> Optional<T> getConfigurationParameter(Class<?> registration, String property, Class<T> tClass,
+                                                            boolean useSnakeCase) {
         if (registrationToIndex == null) {
             scanRegistrations();
         }
@@ -67,7 +68,8 @@ public class RegistrationConfigUtil {
         keys.add(classname + "/mp-rest/" + property);
 
         if (registrationToIndex.containsKey(classname)) {
-            keys.add("kumuluzee.rest-client.registrations[" + registrationToIndex.get(classname) + "]." + property);
+            keys.add("kumuluzee.rest-client.registrations[" + registrationToIndex.get(classname) + "]." +
+                    ((useSnakeCase) ? toSnakeCase(property) : property));
         }
 
         Optional<T> param = Optional.empty();
@@ -90,6 +92,8 @@ public class RegistrationConfigUtil {
             return (Optional<T>) configurationUtil.get(key);
         } else if (tClass.equals(Integer.class)) {
             return (Optional<T>) configurationUtil.getInteger(key);
+        } else if (tClass.equals(Long.class)) {
+            return (Optional<T>) configurationUtil.getLong(key);
         } else if (tClass.equals(URL.class)) {
             String url = configurationUtil.get(key).orElse(null);
             if (url == null) {
@@ -109,5 +113,19 @@ public class RegistrationConfigUtil {
         } else {
             throw new IllegalArgumentException("Converter for " + tClass + " not found.");
         }
+    }
+
+    private static String toSnakeCase(String s) {
+        StringBuilder sb = new StringBuilder();
+
+        for (char c : s.toCharArray()) {
+            if (Character.isUpperCase(c)) {
+                sb.append("-").append(Character.toLowerCase(c));
+            } else {
+                sb.append(c);
+            }
+        }
+
+        return sb.toString();
     }
 }

@@ -20,36 +20,36 @@
  */
 package com.kumuluz.ee.rest.client.mp.invoker;
 
+import com.kumuluz.ee.rest.client.mp.providers.IncomingHeadersInterceptor;
 import com.kumuluz.ee.rest.client.mp.util.BeanParamProcessorUtil;
+import com.kumuluz.ee.rest.client.mp.util.ClientHeaderParamUtil;
 import com.kumuluz.ee.rest.client.mp.util.DefaultExecutorServiceUtil;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.eclipse.microprofile.rest.client.annotation.RegisterClientHeaders;
 import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptor;
 import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactory;
+import org.eclipse.microprofile.rest.client.ext.ClientHeadersFactory;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 
-import javax.json.Json;
+import javax.enterprise.inject.spi.CDI;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
-import javax.json.JsonReader;
 import javax.ws.rs.*;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.ResponseProcessingException;
+import javax.ws.rs.client.*;
 import javax.ws.rs.core.*;
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
-import java.io.StringReader;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.net.URI;
 import java.net.URL;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -60,8 +60,6 @@ import java.util.stream.Collectors;
  * @since 1.0.1
  */
 public class RestClientInvoker implements InvocationHandler {
-
-    private static final Logger LOG = Logger.getLogger(RestClientInvoker.class.getName());
 
     private Client client;
     private String baseURI;
@@ -121,7 +119,45 @@ public class RestClientInvoker implements InvocationHandler {
         replacePathParamParameters(pathParams);
         URI uri = uriBuilder.buildFromMap(pathParams);
 
-        Invocation.Builder request = client.target(uri).request().headers(paramInfo.getHeaderValues());
+        MultivaluedMap<String, String> headers = paramInfo.getHeaderValues();
+        ClientHeaderParamUtil.collectClientHeaderParams(method).forEach(headers::addAll);
+
+        RegisterClientHeaders registerClientHeaders = getMethodOrClassAnnotation(method, RegisterClientHeaders.class);
+        if (registerClientHeaders != null) {
+            ClientHeadersFactory clientHeadersFactory = registerClientHeaders.value().newInstance();
+
+            headers = clientHeadersFactory.update(getIncomingHeaders(), headers);
+        }
+
+        MultivaluedMap<String, Object> headersObj = new MultivaluedHashMap<>();
+        headers.forEach((k, v) -> v.forEach(v1 -> headersObj.add(k, v1)));
+
+        Client requestClient = this.client;
+
+        Timeout timeout = getMethodOrClassAnnotation(method, Timeout.class);
+        if (timeout != null) {
+            ClientBuilder cb = ClientBuilder.newBuilder().withConfig(client.getConfiguration());
+            cb.connectTimeout(Duration.of(timeout.value(), timeout.unit()).toMillis(), TimeUnit.MILLISECONDS);
+            cb.readTimeout(Duration.of(timeout.value(), timeout.unit()).toMillis(), TimeUnit.MILLISECONDS);
+            requestClient = cb.build();
+        }
+
+        Invocation.Builder request = requestClient
+                .target(uri)
+                .request()
+                .headers(headersObj)
+                .property("org.eclipse.microprofile.rest.client.invokedMethod", method);
+
+        Consumes consumes = getMethodOrClassAnnotation(method, Consumes.class);
+        Produces produces = getMethodOrClassAnnotation(method, Produces.class);
+        String payloadType = MediaType.APPLICATION_JSON; // default
+        if (consumes != null) {
+            payloadType = String.join(",", consumes.value());
+            request.header(HttpHeaders.CONTENT_TYPE, payloadType);
+        }
+        if (produces != null) {
+            request.header(HttpHeaders.ACCEPT, String.join(",", produces.value()));
+        }
 
         for (Map.Entry<String, Object> entry : paramInfo.getCookieParameterValues().entrySet()) {
             request = request.cookie(entry.getKey(), (String) entry.getValue());
@@ -129,12 +165,22 @@ public class RestClientInvoker implements InvocationHandler {
 
         Invocation invocation;
         if (paramInfo.getPayload() != null) {
-            invocation = request.build(httpMethod, Entity.entity(paramInfo.getPayload(), MediaType.APPLICATION_JSON));
+            invocation = request.build(httpMethod, Entity.entity(paramInfo.getPayload(), payloadType));
         } else {
             invocation = request.build(httpMethod);
         }
 
         return invokeRequest(invocation, method);
+    }
+
+    private MultivaluedMap<String, String> getIncomingHeaders() {
+        try {
+            IncomingHeadersInterceptor interceptor = CDI.current().select(IncomingHeadersInterceptor.class).get();
+            return interceptor.getIncomingHeaders();
+        } catch (Exception ignored) {
+        }
+
+        return new MultivaluedHashMap<>();
     }
 
     private Object invokeRequest(Invocation invocation, Method method) throws Throwable {
@@ -174,6 +220,8 @@ public class RestClientInvoker implements InvocationHandler {
                             Arrays.toString(typeArguments)));
                 }
 
+                interceptors.forEach(AsyncInvocationInterceptor::removeContext);
+
                 cf.complete(processResponse(typeArguments[0], response));
             });
 
@@ -201,17 +249,13 @@ public class RestClientInvoker implements InvocationHandler {
                 return response;
             } else {
                 // get user defined entity
-                try {
-                    Class readType;
-                    if (returnType instanceof ParameterizedType) {
-                        readType = (Class) ((ParameterizedType) returnType).getRawType();
-                    } else {
-                        readType = (Class) returnType;
-                    }
-                    return readResponseEntity(response, readType);
-                } catch (Exception e) {
-                    LOG.log(Level.SEVERE, "Error processing response.", e);
+                Class<?> readType;
+                if (returnType instanceof ParameterizedType) {
+                    readType = (Class) ((ParameterizedType) returnType).getRawType();
+                } else {
+                    readType = (Class) returnType;
                 }
+                return response.readEntity(readType);
             }
         }
 
@@ -254,23 +298,6 @@ public class RestClientInvoker implements InvocationHandler {
                 .map(LocalProviderInfo::getLocalProvider).collect(Collectors.toList());
     }
 
-    private Object readResponseEntity(Response response, Class<?> returnType) {
-        if (returnType.equals(JsonArray.class)) {
-            String stringResponse = response.readEntity(String.class);
-            JsonReader jsonReader = Json.createReader(new StringReader(stringResponse));
-            JsonArray array = jsonReader.readArray();
-            jsonReader.close();
-            return array;
-        } else if (returnType.equals(JsonObject.class)) {
-            String stringResponse = response.readEntity(String.class);
-            JsonReader jsonReader = Json.createReader(new StringReader(stringResponse));
-            JsonObject object = jsonReader.readObject();
-            jsonReader.close();
-            return object;
-        }
-        return response.readEntity(returnType);
-    }
-
     private void handleExceptionMapping(Response response, List<Class<?>> exceptionTypes) throws Throwable {
         int status = response.getStatus();
         MultivaluedMap<String, Object> headers = response.getHeaders();
@@ -290,7 +317,6 @@ public class RestClientInvoker implements InvocationHandler {
             throw throwable;
         }
 
-        // seznam deklariranih tipov ki jih metoda vrze
         for (Class<?> exceptionType : exceptionTypes) {
             if (exceptionType.isAssignableFrom(throwable.getClass())) {
                 throw throwable;
@@ -343,7 +369,7 @@ public class RestClientInvoker implements InvocationHandler {
                     jaxRSAnnotationFound = true;
                 }
                 if (HeaderParam.class.equals(annotation.annotationType())) {
-                    result.addHeader(((HeaderParam) annotation).value(), args[paramIndex]);
+                    result.addHeader(((HeaderParam) annotation).value(), (String) args[paramIndex]);
                     jaxRSAnnotationFound = true;
                 }
                 if (CookieParam.class.equals(annotation.annotationType())) {
@@ -403,6 +429,16 @@ public class RestClientInvoker implements InvocationHandler {
                 }
             }
         }
+    }
+
+    private <T extends Annotation> T getMethodOrClassAnnotation(Method m, Class<T> tClass) {
+        T annotation = m.getAnnotation(tClass);
+
+        if (annotation == null) {
+            annotation = m.getDeclaringClass().getAnnotation(tClass);
+        }
+
+        return annotation;
     }
 
     private boolean isSubResource(Class<?> clazz) {
