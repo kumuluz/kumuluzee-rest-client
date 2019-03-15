@@ -22,8 +22,7 @@ package com.kumuluz.ee.rest.client.mp;
 
 import com.kumuluz.ee.common.Extension;
 import com.kumuluz.ee.common.config.EeConfig;
-import com.kumuluz.ee.common.dependencies.EeExtensionDef;
-import com.kumuluz.ee.common.dependencies.EeExtensionGroup;
+import com.kumuluz.ee.common.dependencies.*;
 import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
 
 import java.util.Collections;
@@ -37,6 +36,11 @@ import java.util.logging.Logger;
  * @since 1.0.1
  */
 @EeExtensionDef(name = "MicroProfileRestClient", group = EeExtensionGroup.REST_CLIENT)
+@EeComponentDependencies({
+        @EeComponentDependency(EeComponentType.CDI),
+        @EeComponentDependency(EeComponentType.JAX_RS),
+        @EeComponentDependency(EeComponentType.JSON_P)
+})
 public class MicroprofileRestClientExtension implements Extension {
 
     private static final Logger LOG = Logger.getLogger(MicroprofileRestClientExtension.class.getSimpleName());
