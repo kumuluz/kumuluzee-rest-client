@@ -32,6 +32,7 @@ import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactor
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.eclipse.microprofile.rest.client.spi.RestClientListener;
+import org.glassfish.jersey.jetty.connector.JettyClientProperties;
 import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
 
 import javax.annotation.Priority;
@@ -200,6 +201,11 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 
         if (!MapperDisabledUtil.isMapperDisabled(this.clientBuilder)) {
             register(DefaultExceptionMapper.class);
+        }
+
+        if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.enable-ssl-hostname-verification")
+                .orElse(true)) {
+            clientBuilder.property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, true);
         }
 
         Client client = clientBuilder.build();
