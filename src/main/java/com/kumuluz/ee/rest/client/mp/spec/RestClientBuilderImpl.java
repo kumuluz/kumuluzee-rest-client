@@ -190,11 +190,10 @@ public class RestClientBuilderImpl implements RestClientBuilder {
             }
         }
         if (this.connectTimeoutUnit != null) {
-            this.clientBuilder.connectTimeout(TimeUnit.MILLISECONDS.convert(connectTimeout, connectTimeoutUnit) / 4,
-                    TimeUnit.MILLISECONDS);
+            this.clientBuilder.connectTimeout(this.connectTimeout, this.connectTimeoutUnit);
         }
         if (this.readTimeoutUnit != null) {
-            this.clientBuilder.readTimeout(readTimeout, readTimeoutUnit);
+            this.clientBuilder.readTimeout(this.readTimeout, this.readTimeoutUnit);
         }
 
         ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);

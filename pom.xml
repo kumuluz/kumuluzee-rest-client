@@ -38,6 +38,8 @@
         <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
         <nexus.staging.plugin.version>1.6.8</nexus.staging.plugin.version>
         <gpg.plugin.version>1.6</gpg.plugin.version>
+
+        <unused-url>http://104.18.34.92:1234/null</unused-url>
     </properties>
 
     <scm>
@@ -204,6 +206,11 @@
                     <environmentVariables>
                         <KUMULUZEE_RESTCLIENT_DISABLEJETTYWWWAUTH>true</KUMULUZEE_RESTCLIENT_DISABLEJETTYWWWAUTH>
                     </environmentVariables>
+                    <systemProperties>
+                        <!-- resolved http://microprofile.io:1234/null -->
+                        <!-- if not specified in ip form, Jetty retries all DNS entries and the timeout is incorrect -->
+                        <org.eclipse.microprofile.rest.client.tck.unusedURL>${unused-url}</org.eclipse.microprofile.rest.client.tck.unusedURL>
+                    </systemProperties>
                 </configuration>
             </plugin>
             <plugin>
