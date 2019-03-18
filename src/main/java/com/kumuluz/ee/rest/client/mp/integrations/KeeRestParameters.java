@@ -1,5 +1,8 @@
 package com.kumuluz.ee.rest.client.mp.integrations;
 
+import com.kumuluz.ee.rest.enums.FilterOperation;
+import com.kumuluz.ee.rest.enums.OrderDirection;
+
 import javax.ws.rs.QueryParam;
 import java.util.LinkedList;
 import java.util.List;
