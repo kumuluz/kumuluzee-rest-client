@@ -63,6 +63,11 @@ public class KeeRestParameters {
         }
 
         public KeeRestParametersBuilder addFilter(String field, FilterOperation filterOperation, String value) {
+            if (filterOperation.equals(FilterOperation.LIKE) || filterOperation.equals(FilterOperation.LIKEIC)){
+                value = value.replace("%","%25");
+                value = value.replace("+","%2B");
+            }
+
             filter.add(field + ":" + filterOperation.toString() + ":" + value);
             return this;
         }
