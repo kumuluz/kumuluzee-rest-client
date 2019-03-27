@@ -378,6 +378,7 @@ public class RestClientInvoker implements InvocationHandler {
                 }
                 if (BeanParam.class.equals(annotation.annotationType())) {
                     argumentInstance = args[paramIndex];
+                    jaxRSAnnotationFound = true;
                 }
             }
 

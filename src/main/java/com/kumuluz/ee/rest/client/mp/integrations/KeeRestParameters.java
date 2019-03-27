@@ -4,14 +4,21 @@ import com.kumuluz.ee.rest.enums.FilterOperation;
 import com.kumuluz.ee.rest.enums.OrderDirection;
 
 import javax.ws.rs.QueryParam;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Used as bean parameter in rest client requests
  */
 public class KeeRestParameters {
-    @QueryParam("where")
+
+    private Logger logger = Logger.getLogger(KeeRestParameters.class.getName());
+
+    @QueryParam("filter")
     private String filter;
     @QueryParam("order")
     private String order;
@@ -22,21 +29,20 @@ public class KeeRestParameters {
     @QueryParam("limit")
     private int limit;
 
-    //Jackson doesn't like serializing empty beans, throws exception, this getter and setter prevent that
-    public int getOffset() {
-        return offset;
-    }
-
-    public void setOffset(int offset) {
-        this.offset = offset;
-    }
-
     private KeeRestParameters(KeeRestParametersBuilder builder) {
         this.filter = String.join(" ", builder.filter);
         this.order = String.join(", ", builder.order);
         this.fields = String.join(", ", builder.fields);
         this.offset = builder.offset;
         this.limit = builder.limit;
+
+        try{
+            this.filter = URLEncoder.encode(this.filter,StandardCharsets.UTF_8.toString());
+            this.order = URLEncoder.encode(this.order,StandardCharsets.UTF_8.toString());
+            this.fields = URLEncoder.encode(this.fields,StandardCharsets.UTF_8.toString());
+        } catch (UnsupportedEncodingException e){
+            logger.severe(e.getMessage());
+        }
     }
 
     public static class KeeRestParametersBuilder {
@@ -63,11 +69,6 @@ public class KeeRestParameters {
         }
 
         public KeeRestParametersBuilder addFilter(String field, FilterOperation filterOperation, String value) {
-            if (filterOperation.equals(FilterOperation.LIKE) || filterOperation.equals(FilterOperation.LIKEIC)){
-                value = value.replace("%","%25");
-                value = value.replace("+","%2B");
-            }
-
             filter.add(field + ":" + filterOperation.toString() + ":" + value);
             return this;
         }
