@@ -1,4 +1,5 @@
 # KumuluzEE MicroProfile Rest Client
+[![Build Status](https://travis-ci.org/kumuluz/kumuluzee-rest-client.svg?branch=master)](https://travis-ci.org/kumuluz/kumuluzee-rest-client)
 
 > KumuluzEE MicroProfile Rest Client project provides an easy way to define and invoke RESTful services over HTTP.
 
