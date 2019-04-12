@@ -99,6 +99,12 @@ public class KeeRestParameters {
             return this;
         }
 
+        public KeeRestParametersBuilder addFilter(String field, FilterOperation filterOperation, Number number) {
+            String stringRepresentation = String.valueOf(number);
+            addFilter(field, filterOperation, stringRepresentation);
+            return this;
+        }
+
         // fields
         public KeeRestParametersBuilder addField(String field) {
             fields.add(field);
