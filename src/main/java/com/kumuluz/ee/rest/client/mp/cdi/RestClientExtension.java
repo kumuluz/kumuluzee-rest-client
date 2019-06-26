@@ -20,18 +20,8 @@
  */
 package com.kumuluz.ee.rest.client.mp.cdi;
 
-import com.kumuluz.ee.rest.client.mp.proxy.RestClientProxyFactory;
-import com.kumuluz.ee.rest.client.mp.util.ProviderRegistrationUtil;
 import com.kumuluz.ee.rest.client.mp.util.RegistrationConfigUtil;
-import org.apache.deltaspike.core.api.literal.AnyLiteral;
-import org.apache.deltaspike.core.api.literal.DefaultLiteral;
-import org.apache.deltaspike.core.util.bean.BeanBuilder;
-import org.apache.deltaspike.partialbean.impl.PartialBeanProxyFactory;
-import org.apache.deltaspike.proxy.api.DeltaSpikeProxyContextualLifecycle;
-import org.eclipse.microprofile.rest.client.RestClientBuilder;
-import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import javax.enterprise.context.*;
 import javax.enterprise.event.Observes;
@@ -48,7 +38,6 @@ import java.util.Set;
  * @author Miha Jamsek
  * @since 1.0.1
  */
-
 public class RestClientExtension implements Extension {
 
     private Set<AnnotatedType> classes;
@@ -68,42 +57,11 @@ public class RestClientExtension implements Extension {
         anType.veto();
     }
 
-    public <T> void afterBean(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager) {
+    public void afterBean(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager) {
         for (AnnotatedType anType : this.classes) {
-            DeltaSpikeProxyContextualLifecycle<T, InjectableRestClientHandler> lifecycle = new DeltaSpikeProxyContextualLifecycle<>(
-                    (Class<T>) anType.getJavaClass(),
-                    InjectableRestClientHandler.class,
-                    RestClientProxyFactory.getInstance(),
-                    beanManager
-            );
 
             Class<? extends Annotation> scopeClass = resolveScope(anType.getJavaClass());
-
-            BeanBuilder<T> beanBuilder = new BeanBuilder<T>(beanManager)
-                    .readFromType((AnnotatedType<T>) anType)
-                    .qualifiers(new RestClient.RestClientLiteral(), new DefaultLiteral(), new AnyLiteral())
-                    .passivationCapable(true)
-                    .scope(scopeClass)
-                    .beanLifecycle(lifecycle);
-
-            afterBeanDiscovery.addBean(beanBuilder.create());
-        }
-    }
-
-    public void afterDeploymentValidation(@Observes AfterDeploymentValidation event) {
-        for (AnnotatedType anType : this.classes) {
-            try {
-                // create invoker and add it to cache
-                RestClientBuilder restClientBuilder = RestClientBuilder.newBuilder();
-
-                ProviderRegistrationUtil.registerProviders(restClientBuilder, anType.getJavaClass());
-
-                Object restClientInvoker = restClientBuilder.build(anType.getJavaClass());
-                InjectableRestClientHandler.addRestClientInvoker(anType.getJavaClass(), restClientInvoker);
-            } catch (Exception e) {
-                InjectableRestClientHandler.addRestClientInvokerException(anType.getJavaClass(),
-                        new RestClientDefinitionException(e));
-            }
+            afterBeanDiscovery.addBean(new InvokerDelegateBean(anType.getJavaClass(), scopeClass));
         }
     }
 

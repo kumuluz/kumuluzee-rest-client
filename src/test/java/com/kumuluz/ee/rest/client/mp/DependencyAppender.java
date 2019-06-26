@@ -55,9 +55,6 @@ public class DependencyAppender implements MavenDependencyAppender {
 
         libs.add("org.hamcrest:hamcrest-all:" + versionsBundle.getString("hamcrest-version"));
 
-        libs.add("org.apache.deltaspike.modules:deltaspike-partial-bean-module-impl:" +
-                versionsBundle.getString("deltaspike-version"));
-
         return libs;
     }
 }
