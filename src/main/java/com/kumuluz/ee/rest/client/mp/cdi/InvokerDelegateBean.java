@@ -32,6 +32,7 @@ import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.PassivationCapable;
 import javax.enterprise.util.AnnotationLiteral;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashSet;
@@ -76,7 +77,10 @@ public class InvokerDelegateBean implements Bean<Object>, PassivationCapable {
 
         ProviderRegistrationUtil.registerProviders(restClientBuilder, restClientType);
 
-        return restClientBuilder.build(restClientType);
+        Object restClient = restClientBuilder.build(restClientType);
+
+        return Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class[]{restClientType},
+                new InterceptorInvocationHandler(restClientType, restClient));
     }
 
     @Override
