@@ -323,7 +323,8 @@ public class RestClientBuilderImpl implements RestClientBuilder {
                 this.getConfiguration(),
                 this.executorService);
 
-        return (T) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class[]{apiClass}, rcInvoker);
+        return (T) Proxy.newProxyInstance(this.getClass().getClassLoader(),
+                new Class[]{apiClass, Closeable.class, AutoCloseable.class}, rcInvoker);
     }
 
     private KeyStore getKeyStoreFromConfig(Class<?> apiClass, String configPrefix) {
