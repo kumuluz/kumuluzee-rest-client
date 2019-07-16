@@ -155,9 +155,11 @@ public class RestClientInvoker implements InvocationHandler {
             payloadType = String.join(",", consumes.value());
             request.header(HttpHeaders.CONTENT_TYPE, payloadType);
         }
+        String acceptHeader = MediaType.APPLICATION_JSON;
         if (produces != null) {
-            request.header(HttpHeaders.ACCEPT, String.join(",", produces.value()));
+            acceptHeader = String.join(",", produces.value());
         }
+        request.header(HttpHeaders.ACCEPT, acceptHeader);
 
         for (Map.Entry<String, Object> entry : paramInfo.getCookieParameterValues().entrySet()) {
             request = request.cookie(entry.getKey(), (String) entry.getValue());
