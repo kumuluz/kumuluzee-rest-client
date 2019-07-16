@@ -55,6 +55,8 @@ SimpleApi simpleApi = RestClientBuilder
     .build(SimpleApi.class);
 ```
 
+All constructed rest clients implement the `Closeable` and `AutoCloseable` interfaces and can thus be manually closed.
+
 #### Generating rest client with CDI injection
 
 Injection of rest client is supported in CDI beans and offers an approach of generating a rest client with less
@@ -136,6 +138,46 @@ kumuluzee:
 The `class` property identifies the definition of rest client by its class name. The `url` property defines the base URL
 for generated rest clients and the `providers` property is a comma separated list of providers, that are added to the
 generated rest clients.
+
+Additionally the following configuration keys are supported:
+
+- `connect-timeout` - Connection timeout in milliseconds.
+- `read-timeout` - Read timeout in milliseconds.
+- `scope` - Fully qualified class name of the desired scope of the rest client.
+- `hostname-verifier` - Fully qualified class name of the desired implementation of `HostnameVerifier`.
+- `key-store` - Location of the client key store. Can point to either a classpath resource (e.g. `classpath:/my-keystore.jks`) or a file (e.g. `file:/home/user/my-keystore.jks`).
+- `key-store-type` - Type of the client key store (`JKS` by default).
+- `key-store-password` - Password of the client key store.
+- `trust-store` - Location of the trust store. Can point to either a classpath resource (e.g. `classpath:/my-truststore.jks`) or a file (e.g. `file:/home/user/my-truststore.jks`).
+- `trust-store-type` - Type of the trust store (`JKS` by default).
+- `trust-store-password` - Password of the trust store.
+
+Instead of using fully qualified class names for the configuration a configuration keys can also be used. This is
+especially useful when multiple client definitions share the same configuration. For example for the following
+definition:
+
+```java
+@RegisterRestClient(configKey="test-client")
+public interface TestClient {
+  @GET
+  Response test();
+}
+```
+
+The following configuration can be used (notice that the `class` key matches the `configKey` parameter of the
+`@RegisterRestClient` annotation):
+
+```yaml
+kumuluzee:
+  rest-client:
+    registrations:
+      - class: test-client
+        url: https://my-test-service
+        read-timeout: 5000
+```
+
+When using both configuration keys and fully qualified class names for the configuration the fully qualified class
+name configuration takes precedence.
 
 ### Making asynchronous requests
 
