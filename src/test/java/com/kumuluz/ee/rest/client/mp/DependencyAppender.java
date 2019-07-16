@@ -54,6 +54,7 @@ public class DependencyAppender implements MavenDependencyAppender {
                 versionsBundle.getString("microprofile-fault-tolerance-version"));
 
         libs.add("org.hamcrest:hamcrest-all:" + versionsBundle.getString("hamcrest-version"));
+        libs.add("junit:junit:" + versionsBundle.getString("junit-version"));
 
         return libs;
     }
