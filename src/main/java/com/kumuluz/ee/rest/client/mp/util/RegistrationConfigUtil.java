@@ -79,7 +79,7 @@ public class RegistrationConfigUtil {
         return Optional.empty();
     }
 
-    public static <T> Optional<T> getConfigurationParameter(String configKey, String property, Class<T> tClass,
+    private static <T> Optional<T> getConfigurationParameter(String configKey, String property, Class<T> tClass,
                                                             boolean useSnakeCase) {
         if (registrationToIndex == null) {
             scanRegistrations();
