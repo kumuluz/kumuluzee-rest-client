@@ -50,6 +50,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -65,6 +66,7 @@ public class RestClientInvoker implements InvocationHandler {
     private String baseURI;
     private Configuration configuration;
     private ExecutorService executorService;
+    private AtomicBoolean closed;
 
     public RestClientInvoker(Client client, String baseURI, Configuration configuration,
                              ExecutorService executorService) {
@@ -80,10 +82,20 @@ public class RestClientInvoker implements InvocationHandler {
         this.baseURI = baseURI;
         this.configuration = configuration;
         this.executorService = executorService;
+        this.closed = new AtomicBoolean(false);
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+
+        if (method.getName().equals("close") && args == null) {
+            close();
+            return null;
+        }
+
+        if (this.closed.get()) {
+            throw new IllegalStateException("Rest Client is closed.");
+        }
 
         StringBuilder serverURL = determineEndpointUrl(method);
         // if subresource exists, return RestClient for subresource type
@@ -155,9 +167,11 @@ public class RestClientInvoker implements InvocationHandler {
             payloadType = String.join(",", consumes.value());
             request.header(HttpHeaders.CONTENT_TYPE, payloadType);
         }
+        String acceptHeader = MediaType.APPLICATION_JSON;
         if (produces != null) {
-            request.header(HttpHeaders.ACCEPT, String.join(",", produces.value()));
+            acceptHeader = String.join(",", produces.value());
         }
+        request.header(HttpHeaders.ACCEPT, acceptHeader);
 
         for (Map.Entry<String, Object> entry : paramInfo.getCookieParameterValues().entrySet()) {
             request = request.cookie(entry.getKey(), (String) entry.getValue());
@@ -171,6 +185,12 @@ public class RestClientInvoker implements InvocationHandler {
         }
 
         return invokeRequest(invocation, method);
+    }
+
+    private void close() {
+        if (closed.compareAndSet(false, true)) {
+            this.client.close();
+        }
     }
 
     private MultivaluedMap<String, String> getIncomingHeaders() {

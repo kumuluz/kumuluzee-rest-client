@@ -36,14 +36,21 @@ import org.glassfish.jersey.jetty.connector.JettyClientProperties;
 import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
 
 import javax.annotation.Priority;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.Configuration;
+import java.io.*;
 import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +73,11 @@ public class RestClientBuilderImpl implements RestClientBuilder {
     private TimeUnit connectTimeoutUnit;
     private long readTimeout;
     private TimeUnit readTimeoutUnit;
+    private SSLContext sslContext;
+    private KeyStore keyStore;
+    private String keyStorePassword;
+    private KeyStore trustStore;
+    private HostnameVerifier hostnameVerifier;
 
     private Set<Object> customProviders;
     private Map<Class, Map<Class<?>, Integer>> customProvidersContracts;
@@ -80,6 +92,14 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 
         restClientListeners = new ArrayList<>();
         ServiceLoader.load(RestClientListener.class).iterator().forEachRemaining(rcl -> restClientListeners.add(rcl));
+    }
+
+    private static Object newInstanceOf(Class apiClass) {
+        try {
+            return apiClass.newInstance();
+        } catch (Throwable e) {
+            throw new RuntimeException("Failed to register " + apiClass, e);
+        }
     }
 
     @Override
@@ -120,6 +140,31 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         }
 
         this.executorService = executorService;
+        return this;
+    }
+
+    @Override
+    public RestClientBuilder sslContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
+        return this;
+    }
+
+    @Override
+    public RestClientBuilder trustStore(KeyStore trustStore) {
+        this.trustStore = trustStore;
+        return this;
+    }
+
+    @Override
+    public RestClientBuilder keyStore(KeyStore keyStore, String password) {
+        this.keyStore = keyStore;
+        this.keyStorePassword = password;
+        return this;
+    }
+
+    @Override
+    public RestClientBuilder hostnameVerifier(HostnameVerifier hostnameVerifier) {
+        this.hostnameVerifier = hostnameVerifier;
         return this;
     }
 
@@ -197,6 +242,56 @@ public class RestClientBuilderImpl implements RestClientBuilder {
             this.clientBuilder.readTimeout(this.readTimeout, this.readTimeoutUnit);
         }
 
+        // configure ssl
+        if (trustStore == null) {
+            KeyStore trustStore = getKeyStoreFromConfig(apiClass, "trustStore");
+
+            if (trustStore != null) {
+                this.trustStore(trustStore);
+            }
+        }
+        if (hostnameVerifier == null) {
+            Optional<String> hostnameVerifierClass = RegistrationConfigUtil.getConfigurationParameter(apiClass,
+                    "hostnameVerifier", String.class, true);
+
+            if (hostnameVerifierClass.isPresent()) {
+                try {
+                    Class<?> hostnameVerifier = Class.forName(hostnameVerifierClass.get());
+                    if (HostnameVerifier.class.isAssignableFrom(hostnameVerifier)) {
+                        this.hostnameVerifier((HostnameVerifier) hostnameVerifier.newInstance());
+                    } else {
+                        throw new IllegalStateException("Class " + hostnameVerifierClass.get() +
+                                " is not a HostnameVerifier.");
+                    }
+                } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+                    throw new IllegalStateException("Could not load HostnameVerifier " + hostnameVerifierClass.get(), e);
+                }
+            }
+        }
+        if (keyStore == null) {
+            KeyStore keyStore = getKeyStoreFromConfig(apiClass, "keyStore");
+
+            if (keyStore != null) {
+                String password = RegistrationConfigUtil.getConfigurationParameter(apiClass,
+                        "keyStorePassword", String.class, true)
+                        .orElse(null); // orElse not reachable
+
+                this.keyStore(keyStore, password);
+            }
+        }
+        if (this.keyStore != null) {
+            this.clientBuilder.keyStore(keyStore, keyStorePassword);
+        }
+        if (this.trustStore != null) {
+            this.clientBuilder.trustStore(trustStore);
+        }
+        if (this.sslContext != null) {
+            this.clientBuilder.sslContext(sslContext);
+        }
+        if (this.hostnameVerifier != null) {
+            this.clientBuilder.hostnameVerifier(hostnameVerifier);
+        }
+
         ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);
 
         if (!MapperDisabledUtil.isMapperDisabled(this.clientBuilder)) {
@@ -204,11 +299,17 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         }
 
         if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.enable-ssl-hostname-verification")
-                .orElse(true)) {
+                .orElse(hostnameVerifier == null)) {
             clientBuilder.property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, true);
         }
 
         Client client = clientBuilder.build();
+
+        if (this.hostnameVerifier != null) {
+            // Jetty connector does not yet support setting the hostname verifier, fix it manually
+            JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setEndpointIdentificationAlgorithm(null);
+            JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setHostnameVerifier(hostnameVerifier);
+        }
 
         if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.disable-jetty-www-auth")
                 .orElse(false)) {
@@ -222,7 +323,51 @@ public class RestClientBuilderImpl implements RestClientBuilder {
                 this.getConfiguration(),
                 this.executorService);
 
-        return (T) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class[] {apiClass}, rcInvoker);
+        return (T) Proxy.newProxyInstance(this.getClass().getClassLoader(),
+                new Class[]{apiClass, Closeable.class, AutoCloseable.class}, rcInvoker);
+    }
+
+    private KeyStore getKeyStoreFromConfig(Class<?> apiClass, String configPrefix) {
+        Optional<String> keyStoreLocation = RegistrationConfigUtil.getConfigurationParameter(apiClass,
+                configPrefix, String.class, true);
+        if (keyStoreLocation.isPresent()) {
+            String type = RegistrationConfigUtil.getConfigurationParameter(apiClass,
+                    configPrefix + "Type", String.class, true)
+                    .orElse("JKS");
+            Optional<String> password = RegistrationConfigUtil.getConfigurationParameter(apiClass,
+                    configPrefix + "Password", String.class, true);
+
+            if (!password.isPresent()) {
+                throw new IllegalStateException("Password for store " + keyStoreLocation.get() + " for " +
+                        apiClass + " is not set!");
+            }
+
+            try {
+                KeyStore ks = KeyStore.getInstance(type);
+
+                ks.load(getKeystoreStream(keyStoreLocation.get()), password.get().toCharArray());
+                return ks;
+
+            } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
+                throw new IllegalStateException("Could not load trust store " + keyStoreLocation + " for " +
+                        apiClass, e);
+            }
+        } else {
+            return null;
+        }
+    }
+
+    private InputStream getKeystoreStream(String location) throws FileNotFoundException {
+
+        if (location.startsWith("classpath:")) {
+            location = location.substring("classpath:".length());
+            return getClass().getResourceAsStream(location);
+        } else if (location.startsWith("file:")) {
+            location = location.substring("file:".length());
+            return new FileInputStream(new File(location));
+        } else {
+            throw new IllegalStateException("Keystore location must begin with \"classpath:\" or \"file:\"");
+        }
     }
 
     @Override
@@ -235,14 +380,6 @@ public class RestClientBuilderImpl implements RestClientBuilder {
     public RestClientBuilder property(String s, Object o) {
         this.clientBuilder.property(s, o);
         return this;
-    }
-
-    private static Object newInstanceOf(Class apiClass) {
-        try {
-            return apiClass.newInstance();
-        } catch (Throwable e) {
-            throw new RuntimeException("Failed to register " + apiClass, e);
-        }
     }
 
     @Override

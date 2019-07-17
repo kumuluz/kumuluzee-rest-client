@@ -21,6 +21,7 @@
 package com.kumuluz.ee.rest.client.mp.util;
 
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -59,16 +60,36 @@ public class RegistrationConfigUtil {
 
     public static <T> Optional<T> getConfigurationParameter(Class<?> registration, String property, Class<T> tClass,
                                                             boolean useSnakeCase) {
+
+        Optional<T> fromFqcn = getConfigurationParameter(registration.getName(), property, tClass, useSnakeCase);
+
+        if (fromFqcn.isPresent()) {
+            return fromFqcn;
+        }
+
+        // try configKey if present
+        RegisterRestClient registerRestClient = registration.getAnnotation(RegisterRestClient.class);
+        if (registerRestClient != null) {
+            registerRestClient.configKey();
+            if (!registerRestClient.configKey().isEmpty()) {
+                return getConfigurationParameter(registerRestClient.configKey(), property, tClass, useSnakeCase);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private static <T> Optional<T> getConfigurationParameter(String configKey, String property, Class<T> tClass,
+                                                            boolean useSnakeCase) {
         if (registrationToIndex == null) {
             scanRegistrations();
         }
 
-        String classname = registration.getName();
         List<String> keys = new ArrayList<>();
-        keys.add(classname + "/mp-rest/" + property);
+        keys.add(configKey + "/mp-rest/" + property);
 
-        if (registrationToIndex.containsKey(classname)) {
-            keys.add("kumuluzee.rest-client.registrations[" + registrationToIndex.get(classname) + "]." +
+        if (registrationToIndex.containsKey(configKey)) {
+            keys.add("kumuluzee.rest-client.registrations[" + registrationToIndex.get(configKey) + "]." +
                     ((useSnakeCase) ? toSnakeCase(property) : property));
         }
 

@@ -5,32 +5,5 @@
         <packages>
             <package name="org.eclipse.microprofile.rest.client.tck.*"/>
         </packages>
-        <classes>
-            <class name="org.eclipse.microprofile.rest.client.tck.InvokeWithRegisteredProvidersTest">
-                <methods>
-                    <exclude name=".*"/>
-                </methods>
-            </class>
-            <class name="org.eclipse.microprofile.rest.client.tck.InvokeWithBuiltProvidersTest">
-                <methods>
-                    <exclude name=".*"/>
-                </methods>
-            </class>
-            <class name="org.eclipse.microprofile.rest.client.tck.cditests.CDIInvokeWithRegisteredProvidersTest">
-                <methods>
-                    <exclude name=".*"/>
-                </methods>
-            </class>
-            <class name="org.eclipse.microprofile.rest.client.tck.ClientHeadersFactoryTest">
-                <methods>
-                    <exclude name="testClientHeadersFactoryInvoked"/>
-                </methods>
-            </class>
-            <class name="org.eclipse.microprofile.rest.client.tck.ClientHeaderParamTest">
-                <methods>
-                    <exclude name="testHeaderNotSentWhenExceptionThrownAndRequiredIsFalse"/>
-                </methods>
-            </class>
-        </classes>
     </test>
 </suite>
