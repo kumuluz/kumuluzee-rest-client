@@ -8,8 +8,8 @@ interfaces and well-known JAX-RS annotations. Generated rest clients provide a t
 and support a wide variety of providers which allow fine-grained but natural configuration at various stages of
 requests.
 
-KumuluzEE MicroProfile Rest Client 1.0.1 implements
-[MicroProfile Rest Client](https://microprofile.io/project/eclipse/microprofile-rest-client) 1.0.1 API.
+KumuluzEE MicroProfile Rest Client implements
+[MicroProfile Rest Client](https://microprofile.io/project/eclipse/microprofile-rest-client) 1.3.3 API.
 
 ## Usage
 
