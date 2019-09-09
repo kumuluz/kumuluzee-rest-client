@@ -25,7 +25,10 @@ import com.kumuluz.ee.rest.client.mp.invoker.RestClientInvoker;
 import com.kumuluz.ee.rest.client.mp.providers.CustomJsonValueBodyReader;
 import com.kumuluz.ee.rest.client.mp.providers.CustomJsonValueBodyWriter;
 import com.kumuluz.ee.rest.client.mp.util.*;
+import org.eclipse.jetty.client.HttpProxy;
 import org.eclipse.jetty.client.WWWAuthenticationProtocolHandler;
+import org.eclipse.jetty.client.api.AuthenticationStore;
+import org.eclipse.jetty.client.util.BasicAuthentication;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
 import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactory;
@@ -315,6 +318,23 @@ public class RestClientBuilderImpl implements RestClientBuilder {
                 .orElse(false)) {
             JettyConnectorProvider.getHttpClient(client).getProtocolHandlers()
                     .remove(WWWAuthenticationProtocolHandler.NAME);
+        }
+
+        if (ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.url").isPresent()){
+            String proxyURI = ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.url").get();
+            try{
+                URI u = new URI(proxyURI);
+                JettyConnectorProvider.getHttpClient(client).getProxyConfiguration().getProxies().add(new HttpProxy(u.getHost(),u.getPort()));
+                if(ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.user").isPresent() &&
+                        ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.password").isPresent()){
+                    AuthenticationStore auth = JettyConnectorProvider.getHttpClient(client).getAuthenticationStore();
+                    String proxyUser = ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.user").get();
+                    String proxyPass = ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.password").get();
+                    auth.addAuthentication(new BasicAuthentication(u, "<<ANY_REALM>>", proxyUser, proxyPass));
+                }
+            }catch (URISyntaxException e){
+                throw new IllegalStateException("Could not config proxy to " + proxyURI, e);
+            }
         }
 
         RestClientInvoker rcInvoker = new RestClientInvoker(
