@@ -35,6 +35,7 @@ import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactor
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.eclipse.microprofile.rest.client.spi.RestClientListener;
+import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.jetty.connector.JettyClientProperties;
 import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
 
@@ -320,20 +321,19 @@ public class RestClientBuilderImpl implements RestClientBuilder {
                     .remove(WWWAuthenticationProtocolHandler.NAME);
         }
 
-        if (ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.url").isPresent()){
+        if (ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.url").isPresent()) {
             String proxyURI = ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.url").get();
-            try{
-                URI u = new URI(proxyURI);
-                JettyConnectorProvider.getHttpClient(client).getProxyConfiguration().getProxies().add(new HttpProxy(u.getHost(),u.getPort()));
-                if(ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.user").isPresent() &&
-                        ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.password").isPresent()){
-                    AuthenticationStore auth = JettyConnectorProvider.getHttpClient(client).getAuthenticationStore();
-                    String proxyUser = ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.user").get();
-                    String proxyPass = ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.password").get();
-                    auth.addAuthentication(new BasicAuthentication(u, "<<ANY_REALM>>", proxyUser, proxyPass));
+            clientBuilder.property(ClientProperties.PROXY_URI, proxyURI);
+            if (ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.user").isPresent() &&
+                    ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.password").isPresent()) {
+                AuthenticationStore auth = JettyConnectorProvider.getHttpClient(client).getAuthenticationStore();
+                String proxyUser = ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.user").get();
+                String proxyPass = ConfigurationUtil.getInstance().get("kumuluzee.rest-client.proxy.password").get();
+                try {
+                    auth.addAuthentication(new BasicAuthentication(new URI(proxyURI), "<<ANY_REALM>>", proxyUser, proxyPass));
+                } catch (URISyntaxException e) {
+                    throw new IllegalStateException("Could not config proxy to " + proxyURI, e);
                 }
-            }catch (URISyntaxException e){
-                throw new IllegalStateException("Could not config proxy to " + proxyURI, e);
             }
         }
 
