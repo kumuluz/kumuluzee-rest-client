@@ -124,7 +124,9 @@ public class RestClientInvoker implements InvocationHandler {
         ParamInfo paramInfo = determineParamInfo(method, args);
         UriBuilder uriBuilder = UriBuilder.fromUri(serverURL.toString());
         for (Map.Entry<String, Object> entry : paramInfo.getQueryParameterValues().entrySet()) {
-            uriBuilder.queryParam(entry.getKey(), entry.getValue());
+            if (entry.getValue() != null) {
+                uriBuilder.queryParam(entry.getKey(), entry.getValue());
+            }
         }
 
         Map<String, Object> pathParams = paramInfo.getPathParameterValues();
