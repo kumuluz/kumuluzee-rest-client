@@ -39,7 +39,8 @@ import java.util.logging.Logger;
 @EeComponentDependencies({
         @EeComponentDependency(EeComponentType.CDI),
         @EeComponentDependency(EeComponentType.JAX_RS),
-        @EeComponentDependency(EeComponentType.JSON_P)
+        @EeComponentDependency(EeComponentType.JSON_P),
+        @EeComponentDependency(EeComponentType.JSON_B)
 })
 public class MicroprofileRestClientExtension implements Extension {
 
