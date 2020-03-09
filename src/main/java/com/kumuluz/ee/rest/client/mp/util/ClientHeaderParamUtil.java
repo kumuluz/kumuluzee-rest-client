@@ -27,9 +27,7 @@ import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -143,10 +141,15 @@ public class ClientHeaderParamUtil {
         Object proxyInstance = Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(),
                 new Class[]{interfaceClass},
                 (Object proxy, Method m, Object[] arguments) -> null);
-
-        MethodHandle handle = constructor.newInstance(interfaceClass, MethodHandles.Lookup.PRIVATE)
-                .unreflectSpecial(method, method.getDeclaringClass())
-                .bindTo(proxyInstance);
+    
+        
+        Field field = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+        field.setAccessible(true);
+        MethodHandles.Lookup lookup = (MethodHandles.Lookup) field.get(null);
+        Class<?> declaringClazz = method.getDeclaringClass();
+        
+        MethodHandle handle = lookup.unreflectSpecial(method, declaringClazz)
+        .bindTo(proxyInstance);
 
         if (argument == null) {
             return handle.invokeWithArguments();

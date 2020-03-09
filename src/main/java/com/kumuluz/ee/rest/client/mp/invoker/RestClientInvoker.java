@@ -32,6 +32,7 @@ import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactor
 import org.eclipse.microprofile.rest.client.ext.ClientHeadersFactory;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 
+import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.CDI;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
@@ -138,9 +139,14 @@ public class RestClientInvoker implements InvocationHandler {
 
         RegisterClientHeaders registerClientHeaders = getMethodOrClassAnnotation(method, RegisterClientHeaders.class);
         if (registerClientHeaders != null) {
-            ClientHeadersFactory clientHeadersFactory = registerClientHeaders.value().newInstance();
-
-            headers = clientHeadersFactory.update(getIncomingHeaders(), headers);
+            
+            Instance<? extends ClientHeadersFactory> factoryBean = CDI.current().select(registerClientHeaders.value());
+            if (factoryBean.isResolvable()) {
+                headers = factoryBean.get().update(getIncomingHeaders(), headers);
+            } else {
+                ClientHeadersFactory clientHeadersFactory = registerClientHeaders.value().newInstance();
+                headers = clientHeadersFactory.update(getIncomingHeaders(), headers);
+            }
         }
 
         MultivaluedMap<String, Object> headersObj = new MultivaluedHashMap<>();
