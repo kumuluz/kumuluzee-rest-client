@@ -300,6 +300,15 @@ the `RestClientBuilderListener` implementations are called when a new builder is
 implementations are called when the _build_ method is called on the builder. The latter also exposes the service
 interface class.
 
+## Known issues
+
+### 401 response status throwing ProcessingException
+
+If called service returns status of 401, Jetty's WWWAuthenticationProtocolHandler tries to parse WWW-Authenticate header and if not present, throws ProcessingException, due to which registered ResponseExceptionMappers are not executed.
+
+To prevent this, you can set configuration flag `kumuluzee.rest-client.disable-jetty-www-auth` to `true`
+and handler will be removed from Jetty, allowing you to handle 401 response yourself.
+
 ## Changelog
 
 Recent changes can be viewed on Github on the [Releases Page](https://github.com/kumuluz/kumuluzee-rest-client/releases)
