@@ -20,6 +20,10 @@
  */
 package com.kumuluz.ee.rest.client.mp.invoker;
 
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kumuluz.ee.rest.client.mp.json.JsonProvider;
+import com.kumuluz.ee.rest.client.mp.json.RegisterJsonProvider;
 import com.kumuluz.ee.rest.client.mp.providers.IncomingHeadersInterceptor;
 import com.kumuluz.ee.rest.client.mp.util.BeanParamProcessorUtil;
 import com.kumuluz.ee.rest.client.mp.util.ClientHeaderParamUtil;
@@ -42,6 +46,7 @@ import javax.ws.rs.client.*;
 import javax.ws.rs.core.*;
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.net.URI;
@@ -215,6 +220,7 @@ public class RestClientInvoker implements InvocationHandler {
     private Object invokeRequest(Invocation invocation, Method method) throws Throwable {
 
         Type returnType = method.getGenericReturnType();
+        JsonProvider jsonProvider = determineJsonProvider(method);
 
         if (returnType instanceof ParameterizedType &&
                 ((ParameterizedType) returnType).getRawType().equals(CompletionStage.class)) {
@@ -251,7 +257,7 @@ public class RestClientInvoker implements InvocationHandler {
 
                 interceptors.forEach(AsyncInvocationInterceptor::removeContext);
 
-                cf.complete(processResponse(typeArguments[0], response));
+                cf.complete(processResponse(typeArguments[0], response, jsonProvider));
             });
 
             return cf;
@@ -267,23 +273,28 @@ public class RestClientInvoker implements InvocationHandler {
 
             handleExceptionMapping(response, Arrays.asList(method.getExceptionTypes()));
 
-            return processResponse(returnType, response);
+            return processResponse(returnType, response, jsonProvider);
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private Object processResponse(Type returnType, Response response) {
+    private Object processResponse(Type returnType, Response response, JsonProvider jsonProvider) {
         if (!void.class.equals(returnType)) {
             if (returnType.equals(Response.class)) {
                 // get raw response
                 return response;
             } else {
                 // get user defined entity
-                if (returnType instanceof ParameterizedType) {
-                    String body = response.readEntity(String.class);
-                    return JsonbBuilder.create().fromJson(body, returnType);
+                String body = response.readEntity(String.class);
+                if (jsonProvider.equals(JsonProvider.JACKSON)) {
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        JavaType javaType = mapper.getTypeFactory().constructType(returnType);
+                        return mapper.readValue(body, javaType);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 } else {
-                    return response.readEntity((Class) returnType);
+                    return JsonbBuilder.create().fromJson(body, returnType);
                 }
             }
         }
@@ -298,6 +309,18 @@ public class RestClientInvoker implements InvocationHandler {
                 pathParams.put(pathParamKey, converter.toString(pathParams.get(pathParamKey)));
             }
         }
+    }
+    
+    private JsonProvider determineJsonProvider(Method method) {
+        RegisterJsonProvider methodAnnotation = method.getAnnotation(RegisterJsonProvider.class);
+        if (methodAnnotation != null) {
+            return methodAnnotation.value();
+        }
+        RegisterJsonProvider classAnnotation = method.getDeclaringClass().getAnnotation(RegisterJsonProvider.class);
+        if (classAnnotation != null) {
+            return classAnnotation.value();
+        }
+        return JsonProvider.JSON_B;
     }
 
     private <T> List<T> getProviders(Class<T> providerType) {
