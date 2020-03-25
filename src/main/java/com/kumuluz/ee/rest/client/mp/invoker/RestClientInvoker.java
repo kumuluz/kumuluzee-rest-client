@@ -74,6 +74,7 @@ public class RestClientInvoker implements InvocationHandler {
     private Configuration configuration;
     private ExecutorService executorService;
     private AtomicBoolean closed;
+    private ObjectMapper jacksonMapper;
 
     public RestClientInvoker(Client client, String baseURI, Configuration configuration,
                              ExecutorService executorService) {
@@ -90,6 +91,7 @@ public class RestClientInvoker implements InvocationHandler {
         this.configuration = configuration;
         this.executorService = executorService;
         this.closed = new AtomicBoolean(false);
+        this.jacksonMapper = new ObjectMapper();
     }
 
     @Override
@@ -287,9 +289,8 @@ public class RestClientInvoker implements InvocationHandler {
                 String body = response.readEntity(String.class);
                 if (jsonProvider.equals(JsonProvider.JACKSON)) {
                     try {
-                        ObjectMapper mapper = new ObjectMapper();
-                        JavaType javaType = mapper.getTypeFactory().constructType(returnType);
-                        return mapper.readValue(body, javaType);
+                        JavaType javaType = jacksonMapper.getTypeFactory().constructType(returnType);
+                        return jacksonMapper.readValue(body, javaType);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
