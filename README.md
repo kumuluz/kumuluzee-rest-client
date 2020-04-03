@@ -300,6 +300,54 @@ the `RestClientBuilderListener` implementations are called when a new builder is
 implementations are called when the _build_ method is called on the builder. The latter also exposes the service
 interface class.
 
+## Custom Json provider
+
+MP Rest Client is intended to be used alongside JSON-B for object binding.
+However, in some cases we want to use different Json binding library.
+
+Therefore, KumuluzEE Rest Client also supports **Jackson** as alternative to JSON-B for response body parsing.
+
+### Registering Json provider
+
+To specify which Json provider Rest client should use, we need to simply annotate method or interface (if both are present, method annotation takes precedence) with `@RegisterJsonProvider` annotation.
+
+```java
+import com.kumuluz.ee.rest.client.mp.json.JsonProvider;
+import com.kumuluz.ee.rest.client.mp.json.RegisterJsonProvider;
+
+@RegisterJsonProvider(JsonProvider.JACKSON)
+public interface OrdersApi {
+
+  @GET
+  @Path("/orders")
+  @RegisterJsonProvider(JsonProvider.JACKSON)
+  List<Order> getOrders();
+
+}
+```
+
+### Customizing Json provider
+
+#### Jackson's ObjectMapper
+
+By default, Rest client creates own instance of Jackson's ObjectMapper and uses it to parse response.
+However, most of the time we want to use our own ObjectMapper instance.
+
+We can provide our own ObjectMapper via the property method:
+
+```java
+import com.kumuluz.ee.rest.client.mp.json.JsonConfig;
+
+ObjectMapper myMapper = new ObjectMapper();
+
+OrdersApi ordersApi = RestClientBuilder
+    .newBuilder()
+    .baseUri(ordersApiUrl)
+    .property(JsonConfig.JACKSON_OBJECT_MAPPER_INSTANCE, myMapper)
+    .build(OrdersApi.class);
+```
+
+
 ## Known issues
 
 ### 401 response status throwing ProcessingException
