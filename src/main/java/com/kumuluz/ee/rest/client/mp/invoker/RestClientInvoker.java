@@ -22,6 +22,7 @@ package com.kumuluz.ee.rest.client.mp.invoker;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kumuluz.ee.rest.client.mp.json.JsonConfig;
 import com.kumuluz.ee.rest.client.mp.json.JsonProvider;
 import com.kumuluz.ee.rest.client.mp.json.RegisterJsonProvider;
 import com.kumuluz.ee.rest.client.mp.providers.IncomingHeadersInterceptor;
@@ -58,6 +59,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -68,7 +70,9 @@ import java.util.stream.Collectors;
  * @since 1.0.1
  */
 public class RestClientInvoker implements InvocationHandler {
-
+    
+    private static final Logger LOG = Logger.getLogger(RestClientInvoker.class.getSimpleName());
+    
     private Client client;
     private String baseURI;
     private Configuration configuration;
@@ -292,8 +296,9 @@ public class RestClientInvoker implements InvocationHandler {
                 }
                 if (jsonProvider.equals(JsonProvider.JACKSON)) {
                     try {
-                        JavaType javaType = jacksonMapper.getTypeFactory().constructType(returnType);
-                        return jacksonMapper.readValue(body, javaType);
+                        ObjectMapper mapper = retrieveObjectMapper();
+                        JavaType javaType = mapper.getTypeFactory().constructType(returnType);
+                        return mapper.readValue(body, javaType);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -313,6 +318,20 @@ public class RestClientInvoker implements InvocationHandler {
                 pathParams.put(pathParamKey, converter.toString(pathParams.get(pathParamKey)));
             }
         }
+    }
+    
+    private ObjectMapper retrieveObjectMapper() {
+        Map<String, Object> properties = configuration.getProperties();
+        
+        if (properties.containsKey(JsonConfig.JACKSON_OBJECT_MAPPER_INSTANCE)) {
+            Object jacksonMapper = properties.get(JsonConfig.JACKSON_OBJECT_MAPPER_INSTANCE);
+            if (jacksonMapper instanceof ObjectMapper) {
+                return (ObjectMapper) jacksonMapper;
+            } else {
+                LOG.warning("Registered Jackson Object Mapper is not instance of com.fasterxml.jackson.databind.ObjectMapper! Defaulting to new instance.");
+            }
+        }
+        return this.jacksonMapper;
     }
     
     private JsonProvider determineJsonProvider(Method method) {
