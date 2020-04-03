@@ -56,6 +56,7 @@ public class DependencyAppender implements MavenDependencyAppender {
 
         libs.add("org.hamcrest:hamcrest-all:" + versionsBundle.getString("hamcrest-version"));
         libs.add("junit:junit:" + versionsBundle.getString("junit-version"));
+        libs.add("com.fasterxml.jackson.core:jackson-databind:2.9.9");
 
         return libs;
     }

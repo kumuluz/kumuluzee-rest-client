@@ -287,6 +287,9 @@ public class RestClientInvoker implements InvocationHandler {
             } else {
                 // get user defined entity
                 String body = response.readEntity(String.class);
+                if (String.class.equals(returnType)) {
+                    return body;
+                }
                 if (jsonProvider.equals(JsonProvider.JACKSON)) {
                     try {
                         JavaType javaType = jacksonMapper.getTypeFactory().constructType(returnType);
