@@ -59,6 +59,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -300,7 +301,7 @@ public class RestClientInvoker implements InvocationHandler {
                         JavaType javaType = mapper.getTypeFactory().constructType(returnType);
                         return mapper.readValue(body, javaType);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        LOG.log(Level.SEVERE, "Error parsing response body! {0}", e.getMessage());
                     }
                 } else {
                     return JsonbBuilder.create().fromJson(body, returnType);
