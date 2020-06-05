@@ -46,6 +46,8 @@ public class DependencyAppender implements MavenDependencyAppender {
         libs.add("com.kumuluz.ee:kumuluzee-json-b-yasson:");
         libs.add("org.glassfish.jersey.media:jersey-media-json-processing:" +
                 versionsBundle.getString("jersey-media-version"));
+        libs.add("org.glassfish.jersey.media:jersey-media-multipart:" +
+                versionsBundle.getString("jersey-media-version"));
         libs.add("com.kumuluz.ee.config:kumuluzee-config-mp:" +
                 versionsBundle.getString("kumuluzee-config-mp-version"));
 

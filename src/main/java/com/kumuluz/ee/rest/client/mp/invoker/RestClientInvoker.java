@@ -31,6 +31,7 @@ import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptor;
 import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactory;
 import org.eclipse.microprofile.rest.client.ext.ClientHeadersFactory;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
+import org.glassfish.jersey.media.multipart.*;
 
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.CDI;
@@ -189,6 +190,21 @@ public class RestClientInvoker implements InvocationHandler {
         Invocation invocation;
         if (paramInfo.getPayload() != null) {
             invocation = request.build(httpMethod, Entity.entity(paramInfo.getPayload(), payloadType));
+        } else if (!paramInfo.getFormDataParameterValues().isEmpty()) {
+            FormDataMultiPart multiPart = new FormDataMultiPart();
+
+            paramInfo.getFormDataParameterValues().forEach((name, val) -> {
+                if (val instanceof String) {
+                    multiPart.field(name, (String) val);
+                } else if (val instanceof BodyPart) {
+                    multiPart.bodyPart((BodyPart) val);
+                }
+            });
+
+            MediaType mediaType = MediaType.MULTIPART_FORM_DATA_TYPE;
+            mediaType = Boundary.addBoundary(mediaType);
+
+            invocation = request.build(httpMethod, Entity.entity(multiPart, mediaType));
         } else {
             invocation = request.build(httpMethod);
         }
@@ -406,6 +422,14 @@ public class RestClientInvoker implements InvocationHandler {
                 }
                 if (BeanParam.class.equals(annotation.annotationType())) {
                     argumentInstance = args[paramIndex];
+                    jaxRSAnnotationFound = true;
+                }
+                if (FormDataParam.class.equals(annotation.annotationType())) {
+                    result.addFormDataParameter(((FormDataParam) annotation).value(), args[paramIndex]);
+                    jaxRSAnnotationFound = true;
+                }
+                if (FormParam.class.equals(annotation.annotationType())) {
+                    result.addFormDataParameter(((FormParam) annotation).value(), args[paramIndex]);
                     jaxRSAnnotationFound = true;
                 }
             }

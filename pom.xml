@@ -154,6 +154,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-multipart</artifactId>
+            <version>${jersey-media.version}</version>
+        </dependency>
         <!-- Testing -->
         <dependency>
             <groupId>com.kumuluz.ee.config</groupId>

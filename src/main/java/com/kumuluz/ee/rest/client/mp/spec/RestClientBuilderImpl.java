@@ -34,6 +34,7 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.eclipse.microprofile.rest.client.spi.RestClientListener;
 import org.glassfish.jersey.jetty.connector.JettyClientProperties;
 import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
+import org.glassfish.jersey.media.multipart.MultiPartFeature;
 
 import javax.annotation.Priority;
 import javax.net.ssl.HostnameVerifier;
@@ -293,6 +294,8 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         }
 
         ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);
+
+        clientBuilder.register(MultiPartFeature.class);
 
         if (!MapperDisabledUtil.isMapperDisabled(this.clientBuilder)) {
             register(DefaultExceptionMapper.class);
