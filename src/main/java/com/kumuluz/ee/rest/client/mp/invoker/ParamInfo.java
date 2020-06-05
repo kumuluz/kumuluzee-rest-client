@@ -39,6 +39,7 @@ public class ParamInfo {
     private Map<String, Object> pathParameterValues = new HashMap<>();
     private Map<String, Object> queryParameterValues = new HashMap<>();
     private Map<String, Object> cookieParameterValues = new HashMap<>();
+    private Map<String, Object> formDataParameterValues = new HashMap<>();
     private MultivaluedMap<String, String> headerValues = new MultivaluedHashMap<>();
     private Object payload = null;
 
@@ -52,6 +53,10 @@ public class ParamInfo {
 
     public void addCookieParameter(String name, Object val) {
         cookieParameterValues.put(name, val);
+    }
+
+    public void addFormDataParameter(String name, Object val) {
+        formDataParameterValues.put(name, val);
     }
 
     public void addHeader(String name, String val) {
@@ -76,6 +81,10 @@ public class ParamInfo {
 
     public Map<String, Object> getCookieParameterValues() {
         return cookieParameterValues;
+    }
+
+    public Map<String, Object> getFormDataParameterValues() {
+        return formDataParameterValues;
     }
 
     public Object getPayload() {
