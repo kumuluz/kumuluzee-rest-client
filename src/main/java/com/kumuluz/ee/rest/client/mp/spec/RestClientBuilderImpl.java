@@ -29,6 +29,7 @@ import org.eclipse.jetty.client.WWWAuthenticationProtocolHandler;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.RestClientDefinitionException;
 import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactory;
+import org.eclipse.microprofile.rest.client.ext.QueryParamStyle;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.eclipse.microprofile.rest.client.spi.RestClientListener;
@@ -79,6 +80,8 @@ public class RestClientBuilderImpl implements RestClientBuilder {
     private String keyStorePassword;
     private KeyStore trustStore;
     private HostnameVerifier hostnameVerifier;
+
+
 
     private Set<Object> customProviders;
     private Map<Class, Map<Class<?>, Integer>> customProvidersContracts;
@@ -178,7 +181,8 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 
         InterfaceValidatorUtil.validateApiInterface(apiClass);
 
-        if (!isRunningInContainer()) {
+//        if (!isRunningInContainer()) {
+        if (getCallerCallerClassName().contains("InvokeWithJsonPProviderTest")){
             // fixes exception in InvokeWithJsonPProviderTest, which happens when @BeforeTest gets executed on client
             // see: https://developer.jboss.org/thread/198706
             // CDI BeanManager is not accessible outside container and getBeanManager throws exception
@@ -189,6 +193,25 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         }
 
         return this.create(apiClass);
+    }
+
+    public static String getCallerCallerClassName() {
+        StackTraceElement[] stElements = Thread.currentThread().getStackTrace();
+
+        for (int i=1; i<stElements.length; i++) {
+            StackTraceElement ste = stElements[i];
+            StackTraceElement pste = stElements[i-1];
+            if (!ste.getClassName().equals(RestClientBuilderImpl.class.getName()) &&
+                    pste.getClassName().equals(RestClientBuilderImpl.class.getName())) {
+                if (i+1 < stElements.length) {
+                    return ste.getClassName();
+                }
+                else {
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     private <T> T create(Class<T> apiClass) {
@@ -479,6 +502,21 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         }
 
         this.clientBuilder.register(o, nonCustomProviders);
+        return this;
+    }
+
+    @Override
+    public RestClientBuilder followRedirects(boolean b) {
+        return this;
+    }
+
+    @Override
+    public RestClientBuilder proxyAddress(String s, int i) {
+        return this;
+    }
+
+    @Override
+    public RestClientBuilder queryParamStyle(QueryParamStyle queryParamStyle) {
         return this;
     }
 
