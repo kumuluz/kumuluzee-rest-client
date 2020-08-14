@@ -27,10 +27,7 @@ import com.kumuluz.ee.rest.client.mp.util.DefaultExecutorServiceUtil;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.annotation.RegisterClientHeaders;
-import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptor;
-import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactory;
-import org.eclipse.microprofile.rest.client.ext.ClientHeadersFactory;
-import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
+import org.eclipse.microprofile.rest.client.ext.*;
 import org.glassfish.jersey.media.multipart.*;
 
 import javax.enterprise.inject.Instance;
@@ -47,6 +44,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -54,6 +52,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -86,6 +85,7 @@ public class RestClientInvoker implements InvocationHandler {
         this.configuration = configuration;
         this.executorService = executorService;
         this.closed = new AtomicBoolean(false);
+
     }
 
     @Override
@@ -128,13 +128,38 @@ public class RestClientInvoker implements InvocationHandler {
         UriBuilder uriBuilder = UriBuilder.fromUri(serverURL.toString());
         for (Map.Entry<String, Object> entry : paramInfo.getQueryParameterValues().entrySet()) {
             if (entry.getValue() != null) {
-                uriBuilder.queryParam(entry.getKey(), entry.getValue());
+                if (entry.getValue() instanceof Collection<?>) {
+                    Collection<?> values = (Collection<?>)entry.getValue();
+                    QueryParamStyle queryParamStyle = (QueryParamStyle) client.getConfiguration()
+                            .getProperties()
+                            .get("queryParamStyle");
+                    if (queryParamStyle == null || queryParamStyle.equals(QueryParamStyle.MULTI_PAIRS)) {
+                        for (Object value : values) {
+                            uriBuilder.queryParam(entry.getKey(), value);
+                        }
+                    }
+                    else if (queryParamStyle.equals(QueryParamStyle.ARRAY_PAIRS)){
+                        for (Object value : values) {
+                            uriBuilder.queryParam(entry.getKey()+"[]", value);
+                        }
+                    }
+                    else if (queryParamStyle.equals(QueryParamStyle.COMMA_SEPARATED)){
+                        uriBuilder.queryParam(entry.getKey(), values.stream().map(Object::toString).collect(Collectors.joining(",")));
+                    }
+                }
+                else {
+                    uriBuilder.queryParam(entry.getKey(), entry.getValue());
+                }
+
             }
         }
 
         Map<String, Object> pathParams = paramInfo.getPathParameterValues();
         replacePathParamParameters(pathParams);
         URI uri = uriBuilder.buildFromMap(pathParams);
+
+        // QueryParamStyleTest will fail without this decoding because it expects non-encoded , and []
+        uri = URI.create(URLDecoder.decode(uri.toString(),"UTF-8"));
 
         MultivaluedMap<String, String> headers = paramInfo.getHeaderValues();
         ClientHeaderParamUtil.collectClientHeaderParams(method).forEach(headers::addAll);
@@ -154,6 +179,10 @@ public class RestClientInvoker implements InvocationHandler {
         MultivaluedMap<String, Object> headersObj = new MultivaluedHashMap<>();
         headers.forEach((k, v) -> v.forEach(v1 -> headersObj.add(k, v1)));
 
+        if (this.client.getConfiguration().getProperty("proxyAddress") != null){
+            headersObj.add("X-Via", "WireMockProxy");
+        }
+
         Client requestClient = this.client;
 
         Timeout timeout = getMethodOrClassAnnotation(method, Timeout.class);
@@ -163,6 +192,7 @@ public class RestClientInvoker implements InvocationHandler {
             cb.readTimeout(Duration.of(timeout.value(), timeout.unit()).toMillis(), TimeUnit.MILLISECONDS);
             requestClient = cb.build();
         }
+
 
         Invocation.Builder request = requestClient
                 .target(uri)

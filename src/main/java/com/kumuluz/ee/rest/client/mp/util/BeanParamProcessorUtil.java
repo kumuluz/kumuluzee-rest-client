@@ -21,6 +21,7 @@
 package com.kumuluz.ee.rest.client.mp.util;
 
 import com.kumuluz.ee.rest.client.mp.invoker.ParamInfo;
+import org.eclipse.microprofile.rest.client.ext.QueryParamStyle;
 
 import javax.ws.rs.CookieParam;
 import javax.ws.rs.HeaderParam;

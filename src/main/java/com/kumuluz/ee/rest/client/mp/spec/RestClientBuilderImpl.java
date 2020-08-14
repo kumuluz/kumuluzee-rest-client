@@ -44,6 +44,7 @@ import javax.ws.rs.Priorities;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.Configuration;
+import javax.ws.rs.core.UriBuilder;
 import java.io.*;
 import java.lang.reflect.Proxy;
 import java.net.URI;
@@ -81,7 +82,12 @@ public class RestClientBuilderImpl implements RestClientBuilder {
     private KeyStore trustStore;
     private HostnameVerifier hostnameVerifier;
 
+    private String proxyHost;
+    private Integer proxyPort;
 
+    private Boolean followRedirects;
+
+    private QueryParamStyle queryParamStyle;
 
     private Set<Object> customProviders;
     private Map<Class, Map<Class<?>, Integer>> customProvidersContracts;
@@ -182,7 +188,7 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         InterfaceValidatorUtil.validateApiInterface(apiClass);
 
 //        if (!isRunningInContainer()) {
-        if (getCallerCallerClassName().contains("InvokeWithJsonPProviderTest")){
+        if (getCallerClassName().contains("InvokeWithJsonPProviderTest")){
             // fixes exception in InvokeWithJsonPProviderTest, which happens when @BeforeTest gets executed on client
             // see: https://developer.jboss.org/thread/198706
             // CDI BeanManager is not accessible outside container and getBeanManager throws exception
@@ -193,25 +199,6 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         }
 
         return this.create(apiClass);
-    }
-
-    public static String getCallerCallerClassName() {
-        StackTraceElement[] stElements = Thread.currentThread().getStackTrace();
-
-        for (int i=1; i<stElements.length; i++) {
-            StackTraceElement ste = stElements[i];
-            StackTraceElement pste = stElements[i-1];
-            if (!ste.getClassName().equals(RestClientBuilderImpl.class.getName()) &&
-                    pste.getClassName().equals(RestClientBuilderImpl.class.getName())) {
-                if (i+1 < stElements.length) {
-                    return ste.getClassName();
-                }
-                else {
-                    return null;
-                }
-            }
-        }
-        return null;
     }
 
     private <T> T create(Class<T> apiClass) {
@@ -242,7 +229,7 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         if (baseURI == null) {
             throw new IllegalStateException("Base URL for " + apiClass + " is not set!");
         }
-
+/*
         if (connectTimeoutUnit == null) {
             Optional<Long> connectTimeout = RegistrationConfigUtil.getConfigurationParameter(apiClass,
                     "connectTimeout", Long.class, true);
@@ -315,6 +302,42 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         if (this.hostnameVerifier != null) {
             this.clientBuilder.hostnameVerifier(hostnameVerifier);
         }
+        if (queryParamStyle == null) {
+            Optional<String> qps = RegistrationConfigUtil.getConfigurationParameter(apiClass,
+                    "queryParamStyle", String.class, true);
+            if (qps.isPresent()) {
+                this.clientBuilder.property("queryParamStyle", QueryParamStyle.valueOf(qps.get()));
+            }
+        }
+        if (this.queryParamStyle != null){
+            this.clientBuilder.property("queryParamStyle", queryParamStyle);
+        }
+        if (proxyHost == null) {
+            Optional<String> pa = RegistrationConfigUtil.getConfigurationParameter(apiClass,
+                    "proxyAddress", String.class, true);
+            if (pa.isPresent()) {
+                String[] tokens = pa.get().split(":");
+                try {
+                    String ph = tokens[0];
+                    int pp = Integer.parseInt(tokens[1]);
+
+                    this.proxyHost = ph;
+                    this.proxyPort = pp;
+                }
+                catch (Exception e){
+                    throw new IllegalArgumentException("Invalid proxy address format, should be <proxyHost>:<proxyPort>");
+                }
+            }
+        }
+        if (this.proxyHost != null){
+            UriBuilder proxyUriBbuilder = UriBuilder.fromUri(baseURI.toString());
+            proxyUriBbuilder.host(proxyHost);
+            proxyUriBbuilder.port(proxyPort);
+
+            baseURI = proxyUriBbuilder.build();
+            this.clientBuilder.property("proxyAddress", proxyHost + ":" + proxyPort);
+        }
+
 
         ProviderRegistrationUtil.registerProviders(clientBuilder, apiClass);
 
@@ -328,7 +351,7 @@ public class RestClientBuilderImpl implements RestClientBuilder {
                 .orElse(hostnameVerifier == null)) {
             clientBuilder.property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, true);
         }
-
+*/
         Client client = clientBuilder.build();
 
         if (this.hostnameVerifier != null) {
@@ -336,13 +359,13 @@ public class RestClientBuilderImpl implements RestClientBuilder {
             JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setEndpointIdentificationAlgorithm(null);
             JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setHostnameVerifier(hostnameVerifier);
         }
-
+/*
         if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.disable-jetty-www-auth")
                 .orElse(false)) {
             JettyConnectorProvider.getHttpClient(client).getProtocolHandlers()
                     .remove(WWWAuthenticationProtocolHandler.NAME);
         }
-
+*/
         RestClientInvoker rcInvoker = new RestClientInvoker(
                 client,
                 baseURI.toString(),
@@ -507,16 +530,32 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 
     @Override
     public RestClientBuilder followRedirects(boolean b) {
+
+
         return this;
     }
 
     @Override
     public RestClientBuilder proxyAddress(String s, int i) {
+
+        if (s == null){
+            throw new IllegalArgumentException("Host name cannot be null");
+        }
+
+        if (i < 1 || i > 65535){
+            throw new IllegalArgumentException("Invalid port number");
+        }
+
+        this.proxyHost = s;
+        this.proxyPort = i;
+
         return this;
     }
 
     @Override
     public RestClientBuilder queryParamStyle(QueryParamStyle queryParamStyle) {
+
+        this.queryParamStyle = queryParamStyle;
         return this;
     }
 
@@ -548,5 +587,24 @@ public class RestClientBuilderImpl implements RestClientBuilder {
         }
 
         return Priorities.USER;
+    }
+
+    public static String getCallerClassName() {
+        StackTraceElement[] stElements = Thread.currentThread().getStackTrace();
+
+        for (int i=1; i<stElements.length; i++) {
+            StackTraceElement ste = stElements[i];
+            StackTraceElement pste = stElements[i-1];
+            if (!ste.getClassName().equals(RestClientBuilderImpl.class.getName()) &&
+                    pste.getClassName().equals(RestClientBuilderImpl.class.getName())) {
+                if (i+1 < stElements.length) {
+                    return ste.getClassName();
+                }
+                else {
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 }

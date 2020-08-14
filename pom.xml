@@ -33,6 +33,7 @@
         <kumuluzee-arquillian-container.version>1.1.0</kumuluzee-arquillian-container.version>
         <wiremock.version>2.27.1</wiremock.version>
         <junit.version>4.12</junit.version>
+        <reactivestreams.version>1.0.3</reactivestreams.version>
 
         <surefire.plugin.version>2.22.1</surefire.plugin.version>
         <wiremock.plugin.version>2.7.0</wiremock.plugin.version>
@@ -190,6 +191,11 @@
             <version>${wiremock.version}</version>
             <scope>test</scope>
 
+        </dependency>
+        <dependency>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams</artifactId>
+            <version>${reactivestreams.version}</version>
         </dependency>
     </dependencies>
 

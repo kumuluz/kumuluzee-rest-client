@@ -2,8 +2,10 @@
 
 <suite name="microprofile-rest-client-TCK" verbose="2">
     <test name="microprofile-rest-client TCK">
-        <packages>
-            <package name="org.eclipse.microprofile.rest.client.tck.*"/>
-        </packages>
+
+        <classes>
+            <class name="org.eclipse.microprofile.rest.client.tck.sse.ReactiveStreamsPublisherTckTest"/>
+        </classes>
+
     </test>
 </suite>
