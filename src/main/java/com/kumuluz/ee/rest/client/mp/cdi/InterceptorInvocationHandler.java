@@ -119,7 +119,7 @@ public class InterceptorInvocationHandler implements InvocationHandler {
                 return method.invoke(target, args);
             } catch (InvocationTargetException e) {
                 Throwable targetException = e.getTargetException();
-                if (targetException instanceof RuntimeException) {
+                if (targetException != null) {
                     throw targetException;
                 }
 
