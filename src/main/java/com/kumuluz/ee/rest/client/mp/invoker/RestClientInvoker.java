@@ -37,7 +37,6 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.CDI;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
-import javax.json.bind.JsonbBuilder;
 import javax.ws.rs.*;
 import javax.ws.rs.client.*;
 import javax.ws.rs.core.*;
@@ -287,7 +286,6 @@ public class RestClientInvoker implements InvocationHandler {
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private Object processResponse(Type returnType, Response response) {
         if (!void.class.equals(returnType)) {
             if (returnType.equals(Response.class)) {
@@ -295,12 +293,7 @@ public class RestClientInvoker implements InvocationHandler {
                 return response;
             } else {
                 // get user defined entity
-                if (returnType instanceof ParameterizedType) {
-                    String body = response.readEntity(String.class);
-                    return JsonbBuilder.create().fromJson(body, returnType);
-                } else {
-                    return response.readEntity((Class) returnType);
-                }
+                return response.readEntity(new GenericType<>(returnType));
             }
         }
         return null;
