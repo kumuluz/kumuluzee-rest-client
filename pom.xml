@@ -141,7 +141,7 @@
             <groupId>com.kumuluz.ee.rest</groupId>
             <artifactId>kumuluzee-rest-core</artifactId>
             <version>${kumuluzee.rest.version}</version>
-            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>
