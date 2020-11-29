@@ -32,6 +32,8 @@ import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactor
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.eclipse.microprofile.rest.client.spi.RestClientListener;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
 import org.glassfish.jersey.jetty.connector.JettyClientProperties;
 import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
@@ -66,6 +68,11 @@ import java.util.logging.Logger;
 public class RestClientBuilderImpl implements RestClientBuilder {
 
     private static final Logger LOG = Logger.getLogger(RestClientBuilderImpl.class.getSimpleName());
+
+    private static final String CONFIG_PREFIX               = "kumuluzee.rest-client";
+    private static final String CONFIG_PREFIX_JETTY         = "kumuluzee.rest-client.jetty";
+    private static final String CONFIG_CONNECTOR_JETTY      = "jetty";
+    private static final String CONFIG_CONNECTOR_HTTP_URL   = "http-url";
 
     private ClientBuilder clientBuilder;
     private URI baseURI;
@@ -301,23 +308,86 @@ public class RestClientBuilderImpl implements RestClientBuilder {
             register(DefaultExceptionMapper.class);
         }
 
-        if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.enable-ssl-hostname-verification")
+        ConfigurationUtil confUtil = ConfigurationUtil.getInstance();
+
+        String httpClient = confUtil.get(CONFIG_PREFIX+".http-client-connector").orElse(CONFIG_CONNECTOR_JETTY);
+
+        if (CONFIG_CONNECTOR_HTTP_URL.equals(httpClient)) {
+            ClientConfig clientConfig = new ClientConfig();
+            clientConfig.connectorProvider(new HttpUrlConnectorProvider());
+            clientBuilder.withConfig(clientConfig);
+        }
+        else {
+            if (confUtil.getBoolean(CONFIG_PREFIX+".enable-ssl-hostname-verification")
                 .orElse(hostnameVerifier == null)) {
-            clientBuilder.property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, true);
+                clientBuilder.property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, true);
+            }
         }
 
         Client client = clientBuilder.build();
 
-        if (this.hostnameVerifier != null) {
-            // Jetty connector does not yet support setting the hostname verifier, fix it manually
-            JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setEndpointIdentificationAlgorithm(null);
-            JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setHostnameVerifier(hostnameVerifier);
-        }
+        if (CONFIG_CONNECTOR_JETTY.equals(httpClient)) {
+            //Configure all (or most) Jetty props from config
+            List<String> configNames = confUtil.getMapKeys(CONFIG_PREFIX_JETTY)
+                .orElse(new LinkedList<>());
+            for (String configLine : configNames) {
+                String configKey = CONFIG_PREFIX_JETTY + "." + configLine;
+                switch (configLine) {
+                    case "address-resolution-timeout":
+                        JettyConnectorProvider.getHttpClient(client)
+                            .setAddressResolutionTimeout(confUtil.getLong(configKey).get());
+                        break;
+                    case "connect-timeout":
+                        JettyConnectorProvider.getHttpClient(client)
+                            .setConnectTimeout(confUtil.getLong(configKey).get());
+                        break;
+                    case "default-request-content-type":
+                        JettyConnectorProvider.getHttpClient(client)
+                            .setDefaultRequestContentType(confUtil.get(configKey).get());
+                        break;
+                    case "follow-redirects":
+                        JettyConnectorProvider.getHttpClient(client)
+                            .setFollowRedirects(confUtil.getBoolean(configKey).get());
+                        break;
+                    case "idle-timeout":
+                        JettyConnectorProvider.getHttpClient(client)
+                            .setIdleTimeout(confUtil.getLong(configKey).get());
+                        break;
+                    case "max-redirects":
+                        JettyConnectorProvider.getHttpClient(client)
+                            .setMaxRedirects(confUtil.getInteger(configKey).get());
+                        break;
+                    case "request-buffer-size":
+                        JettyConnectorProvider.getHttpClient(client)
+                            .setRequestBufferSize(confUtil.getInteger(configKey).get());
+                        break;
+                    case "read-buffer-size":
+                        JettyConnectorProvider.getHttpClient(client)
+                            .setResponseBufferSize(confUtil.getInteger(configKey).get());
+                        break;
+                    case "tcp-no-delay":
+                        JettyConnectorProvider.getHttpClient(client)
+                            .setTCPNoDelay(confUtil.getBoolean(configKey).get());
+                        break;
+                    default:
+                        break;
+                }
+            }
 
-        if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.disable-jetty-www-auth")
+            if (this.hostnameVerifier != null) {
+                // Jetty connector does not yet support setting the hostname verifier, fix it manually
+                JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setEndpointIdentificationAlgorithm(null);
+                JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setHostnameVerifier(hostnameVerifier);
+            }
+
+            if (confUtil.getBoolean(CONFIG_PREFIX + ".disable-jetty-www-auth")
                 .orElse(false)) {
-            JettyConnectorProvider.getHttpClient(client).getProtocolHandlers()
+                JettyConnectorProvider.getHttpClient(client).getProtocolHandlers()
                     .remove(WWWAuthenticationProtocolHandler.NAME);
+            }
+        }
+        else if (CONFIG_CONNECTOR_HTTP_URL.equals(httpClient)) {
+            //TODO: not yet configurable in jersey, check with upstream
         }
 
         RestClientInvoker rcInvoker = new RestClientInvoker(
