@@ -179,6 +179,30 @@ kumuluzee:
 When using both configuration keys and fully qualified class names for the configuration the fully qualified class
 name configuration takes precedence.
 
+### Configuration of underlying http client
+
+Corresponding jetty javadoc for jetty can be found [here](https://www.eclipse.org/jetty/javadoc/9.4.35.v20201120/org/eclipse/jetty/client/HttpClient.html).
+
+Configuration for `http-url` native java connector is not yet possible due to limitations in Jersey. 
+
+```yaml
+kumuluzee:
+  rest-client:
+    http-client-connector: jetty # or http-url, java native http client
+    enable-ssl-hostname-verification: true
+    disable-jetty-www-auth: true
+    jetty:
+      address-resolution-timeout: 100 #in ms
+      connect-timeout: 100 # in ms
+      default-request-content-type: application/json
+      follow-redirects: true
+      idle-timeout: 30000 # in ms
+      max-redirects: 3
+      request-buffer-size: 4000 # in bytes, internal buffers only, not max size
+      read-buffer-size: 4000 # in bytes, internal buffers only, not max size
+      tcp-no-delay: false
+```
+
 ### Making asynchronous requests
 
 In order to make requests asynchronously the method in the API interface should return parameterized type
