@@ -31,7 +31,10 @@ import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptor;
 import org.eclipse.microprofile.rest.client.ext.AsyncInvocationInterceptorFactory;
 import org.eclipse.microprofile.rest.client.ext.ClientHeadersFactory;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
-import org.glassfish.jersey.media.multipart.*;
+import org.glassfish.jersey.media.multipart.BodyPart;
+import org.glassfish.jersey.media.multipart.Boundary;
+import org.glassfish.jersey.media.multipart.FormDataMultiPart;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.CDI;
@@ -127,7 +130,14 @@ public class RestClientInvoker implements InvocationHandler {
         UriBuilder uriBuilder = UriBuilder.fromUri(serverURL.toString());
         for (Map.Entry<String, Object> entry : paramInfo.getQueryParameterValues().entrySet()) {
             if (entry.getValue() != null) {
-                uriBuilder.queryParam(entry.getKey(), entry.getValue());
+                Object object = entry.getValue();
+                if (object instanceof Collection) {
+                    Collection collection = (Collection) object;
+                    if (!collection.isEmpty())
+                        uriBuilder.queryParam(entry.getKey(), collection.toArray());
+                } else {
+                    uriBuilder.queryParam(entry.getKey(), object);
+                }
             }
         }
 
@@ -140,7 +150,7 @@ public class RestClientInvoker implements InvocationHandler {
 
         RegisterClientHeaders registerClientHeaders = getMethodOrClassAnnotation(method, RegisterClientHeaders.class);
         if (registerClientHeaders != null) {
-            
+
             Instance<? extends ClientHeadersFactory> factoryBean = CDI.current().select(registerClientHeaders.value());
             if (factoryBean.isResolvable()) {
                 headers = factoryBean.get().update(getIncomingHeaders(), headers);
