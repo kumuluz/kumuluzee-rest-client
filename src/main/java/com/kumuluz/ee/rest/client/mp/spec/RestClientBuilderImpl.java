@@ -33,7 +33,6 @@ import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.eclipse.microprofile.rest.client.spi.RestClientListener;
 import org.glassfish.jersey.jetty.connector.JettyClientProperties;
-import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 
 import javax.annotation.Priority;
@@ -310,13 +309,13 @@ public class RestClientBuilderImpl implements RestClientBuilder {
 
         if (this.hostnameVerifier != null) {
             // Jetty connector does not yet support setting the hostname verifier, fix it manually
-            JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setEndpointIdentificationAlgorithm(null);
-            JettyConnectorProvider.getHttpClient(client).getSslContextFactory().setHostnameVerifier(hostnameVerifier);
+            JettyClientUtil.getHttpClient(client).getSslContextFactory().setEndpointIdentificationAlgorithm(null);
+            JettyClientUtil.getHttpClient(client).getSslContextFactory().setHostnameVerifier(hostnameVerifier);
         }
 
         if (ConfigurationUtil.getInstance().getBoolean("kumuluzee.rest-client.disable-jetty-www-auth")
                 .orElse(false)) {
-            JettyConnectorProvider.getHttpClient(client).getProtocolHandlers()
+            JettyClientUtil.getHttpClient(client).getProtocolHandlers()
                     .remove(WWWAuthenticationProtocolHandler.NAME);
         }
 

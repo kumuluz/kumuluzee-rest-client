@@ -5,5 +5,28 @@
         <packages>
             <package name="org.eclipse.microprofile.rest.client.tck.*"/>
         </packages>
+        <classes>
+            <!-- ignored because of Jetty conflict - TCK uses Jetty 9, whereas KumuluzEE uses Jetty 10 -->
+            <class name="org.eclipse.microprofile.rest.client.tck.ssl.SslHostnameVerifierTest">
+                <methods>
+                    <exclude name=".*"/>
+                </methods>
+            </class>
+            <class name="org.eclipse.microprofile.rest.client.tck.ssl.SslContextTest">
+                <methods>
+                    <exclude name=".*"/>
+                </methods>
+            </class>
+            <class name="org.eclipse.microprofile.rest.client.tck.ssl.SslTrustStoreTest">
+                <methods>
+                    <exclude name=".*"/>
+                </methods>
+            </class>
+            <class name="org.eclipse.microprofile.rest.client.tck.ssl.SslMutualTest">
+                <methods>
+                    <exclude name=".*"/>
+                </methods>
+            </class>
+        </classes>
     </test>
 </suite>
