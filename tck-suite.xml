@@ -4,6 +4,7 @@
     <test name="microprofile-rest-client TCK">
         <packages>
             <package name="org.eclipse.microprofile.rest.client.tck.*"/>
+            <package name="com.kumuluz.ee.rest.client.mp.tests.*"/>
         </packages>
         <classes>
             <!-- ignored because of Jetty conflict - TCK uses Jetty 9, whereas KumuluzEE uses Jetty 10 -->
