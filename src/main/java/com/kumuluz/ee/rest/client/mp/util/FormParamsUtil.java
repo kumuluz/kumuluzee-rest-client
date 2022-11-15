@@ -33,8 +33,7 @@ public class FormParamsUtil {
         formParams.forEach((name, val) -> {
             form.param(name, val.toString());
         });
-        MediaType urlEncodedMediaType = Boundary.addBoundary(MediaType.APPLICATION_FORM_URLENCODED_TYPE);
-        return Entity.entity(form, urlEncodedMediaType);
+        return Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE);
     }
     
 }
