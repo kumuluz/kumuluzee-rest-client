@@ -22,7 +22,7 @@ public class FormParamsTests extends Arquillian {
     
     @Deployment
     public static JavaArchive createDeployment() {
-        return ShrinkWrap.create(JavaArchive.class, FormParamsTests.class.getSimpleName() + ".war")
+        return ShrinkWrap.create(JavaArchive.class, FormParamsTests.class.getSimpleName() + ".jar")
             .addClasses(FormsClient.class, ProducesConsumesFilter.class)
             .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
     }
