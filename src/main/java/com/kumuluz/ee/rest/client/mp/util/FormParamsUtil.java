@@ -15,7 +15,7 @@ public class FormParamsUtil {
     
     }
     
-    public static Entity<?> processMultipartFormParams(Map<String, Object> formParams) {
+    public static Entity<FormDataMultiPart> processMultipartFormParams(Map<String, Object> formParams) {
         FormDataMultiPart multiPart = new FormDataMultiPart();
         formParams.forEach((name, val) -> {
             if (val instanceof String) {
@@ -28,7 +28,7 @@ public class FormParamsUtil {
         return Entity.entity(multiPart, multipartMediaType);
     }
     
-    public static Entity<?> processUrlEncodedFormParams(Map<String, Object> formParams) {
+    public static Entity<Form> processUrlEncodedFormParams(Map<String, Object> formParams) {
         Form form = new Form();
         formParams.forEach((name, val) -> {
             form.param(name, val.toString());

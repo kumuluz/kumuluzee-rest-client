@@ -14,8 +14,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.*;
 
 @Test
 public class FormParamsTests extends Arquillian {
@@ -80,14 +79,12 @@ public class FormParamsTests extends Arquillian {
      * FormDataParam will take precedence
      */
     @Test
-    public void testMixedPriority() {
+    public void testMixedThrows() {
         FormsClient client = RestClientBuilder.newBuilder()
             .baseUri(URI.create("http://localhost:8080/null"))
             .register(ProducesConsumesFilter.class)
             .build(FormsClient.class);
         
-        Response r = client.mixed("testvalue", "testvalue2");
-        String contentTypeHeader = r.getHeaderString("Sent-ContentType");
-        assertTrue(contentTypeHeader.contains(MediaType.MULTIPART_FORM_DATA));
+        assertThrows(IllegalStateException.class, () -> client.mixed("testvalue", "testvalue2"));
     }
 }

@@ -186,14 +186,18 @@ public class RestClientInvoker implements InvocationHandler {
         for (Map.Entry<String, Object> entry : paramInfo.getCookieParameterValues().entrySet()) {
             request = request.cookie(entry.getKey(), (String) entry.getValue());
         }
+        
+        if (paramInfo.hasFormDataParams() && paramInfo.hasFormDataMultipartParams()) {
+            throw new IllegalStateException("Both @FormParam and @FormDataParam are present in method arguments!");
+        }
 
         Invocation invocation;
         if (paramInfo.getPayload() != null) {
             invocation = request.build(httpMethod, Entity.entity(paramInfo.getPayload(), payloadType));
-        } else if (!paramInfo.getFormDataMultipartParameterValues().isEmpty()) {
+        } else if (paramInfo.hasFormDataMultipartParams()) {
             Entity<?> entity = FormParamsUtil.processMultipartFormParams(paramInfo.getFormDataMultipartParameterValues());
             invocation = request.build(httpMethod, entity);
-        } else if (!paramInfo.getFormDataParameterValues().isEmpty()) {
+        } else if (paramInfo.hasFormDataParams()) {
             Entity<?> entity = FormParamsUtil.processUrlEncodedFormParams(paramInfo.getFormDataParameterValues());
             invocation = request.build(httpMethod, entity);
         } else {

@@ -95,6 +95,14 @@ public class ParamInfo {
     public Map<String, Object> getFormDataMultipartParameterValues() {
         return formDataMultipartParameterValues;
     }
+    
+    public boolean hasFormDataMultipartParams() {
+        return !formDataMultipartParameterValues.isEmpty();
+    }
+    
+    public boolean hasFormDataParams() {
+        return !formDataParameterValues.isEmpty();
+    }
 
     public Object getPayload() {
         if (payload == null) {
