@@ -32,22 +32,26 @@ public class FormParamsTests extends Arquillian {
      */
     @Test
     public void testMultipart() {
+
         FormsClient client = RestClientBuilder.newBuilder()
             .baseUri(URI.create("http://localhost:8080/null"))
             .register(ProducesConsumesFilter.class)
             .build(FormsClient.class);
-        
-        Response r = client.multipart("testvalue");
-        String contentTypeHeader = r.getHeaderString("Sent-ContentType");
-        
-        assertTrue(contentTypeHeader.contains(MediaType.MULTIPART_FORM_DATA));
-        r = client.multipartIncorrectConsume("testvalue");
-        contentTypeHeader = r.getHeaderString("Sent-ContentType");
-        assertTrue(contentTypeHeader.contains(MediaType.MULTIPART_FORM_DATA));
-    
-        r = client.multipartNoConsume("testvalue");
-        contentTypeHeader = r.getHeaderString("Sent-ContentType");
-        assertTrue(contentTypeHeader.contains(MediaType.MULTIPART_FORM_DATA));
+
+        try (Response r = client.multipart("testvalue")) {
+            String contentTypeHeader = r.getHeaderString("Sent-ContentType");
+            assertTrue(contentTypeHeader.contains(MediaType.MULTIPART_FORM_DATA));
+        }
+
+        try (Response r = client.multipartIncorrectConsume("testvalue")) {
+            String contentTypeHeader = r.getHeaderString("Sent-ContentType");
+            assertTrue(contentTypeHeader.contains(MediaType.MULTIPART_FORM_DATA));
+        }
+
+        try (Response r = client.multipartNoConsume("testvalue")) {
+            String contentTypeHeader = r.getHeaderString("Sent-ContentType");
+            assertTrue(contentTypeHeader.contains(MediaType.MULTIPART_FORM_DATA));
+        }
     }
     
     /**
@@ -56,22 +60,26 @@ public class FormParamsTests extends Arquillian {
      */
     @Test
     public void testUrlEncoded() {
+
         FormsClient client = RestClientBuilder.newBuilder()
             .baseUri(URI.create("http://localhost:8080/null"))
             .register(ProducesConsumesFilter.class)
             .build(FormsClient.class);
-        
-        Response r = client.urlEncoded("testvalue");
-        String contentTypeHeader = r.getHeaderString("Sent-ContentType");
-        assertEquals(contentTypeHeader, MediaType.APPLICATION_FORM_URLENCODED);
-        
-        r = client.urlEncodedIncorrectConsume("testvalue");
-        contentTypeHeader = r.getHeaderString("Sent-ContentType");
-        assertEquals(contentTypeHeader, MediaType.APPLICATION_FORM_URLENCODED);
-        
-        r = client.urlEncodedNoConsume("testvalue");
-        contentTypeHeader = r.getHeaderString("Sent-ContentType");
-        assertEquals(contentTypeHeader, MediaType.APPLICATION_FORM_URLENCODED);
+
+        try (Response r = client.urlEncoded("testvalue");) {
+            String contentTypeHeader = r.getHeaderString("Sent-ContentType");
+            assertEquals(contentTypeHeader, MediaType.APPLICATION_FORM_URLENCODED);
+        }
+
+        try (Response r = client.urlEncodedIncorrectConsume("testvalue")) {
+            String contentTypeHeader = r.getHeaderString("Sent-ContentType");
+            assertEquals(contentTypeHeader, MediaType.APPLICATION_FORM_URLENCODED);
+        }
+
+        try (Response r = client.urlEncodedNoConsume("testvalue")) {
+            String contentTypeHeader = r.getHeaderString("Sent-ContentType");
+            assertEquals(contentTypeHeader, MediaType.APPLICATION_FORM_URLENCODED);
+        }
     }
     
     /**
@@ -85,6 +93,10 @@ public class FormParamsTests extends Arquillian {
             .register(ProducesConsumesFilter.class)
             .build(FormsClient.class);
         
-        assertThrows(IllegalStateException.class, () -> client.mixed("testvalue", "testvalue2"));
+        assertThrows(IllegalStateException.class, () -> {
+            //noinspection EmptyTryBlock
+            try (Response ignored = client.mixed("testvalue", "testvalue2")) {
+            }
+        });
     }
 }
