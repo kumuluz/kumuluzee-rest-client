@@ -27,6 +27,7 @@ import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -126,35 +127,50 @@ public class ClientHeaderParamUtil {
             throw e;
         } catch (Throwable e) {
             if (clientHeaderParam.required()) {
-                throw e;
+                if (e instanceof InvocationTargetException) {
+                    // unwrap, thrown by invokeDefaultMethod - method.invoke
+                    throw e.getCause();
+                } else {
+                    throw e;
+                }
             }
         }
     }
 
-    private static Object invokeDefaultMethod(Class interfaceClass, Method method, String argument) throws Throwable {
+    /**
+     * Invokes a default method defined on an interface.
+     * <p>
+     * Adapted from: <a href="https://stackoverflow.com/a/49532492/14630693">...</a>
+     */
+    private static Object invokeDefaultMethod(Class<?> interfaceClass, Method method, String argument) throws Throwable {
 
-        final Constructor<MethodHandles.Lookup> constructor = MethodHandles.Lookup.class.getDeclaredConstructor(Class.class, int.class);
-        if (!constructor.isAccessible()) {
-            constructor.setAccessible(true);
-        }
-
+        //noinspection SuspiciousInvocationHandlerImplementation
         Object proxyInstance = Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(),
-                new Class[]{interfaceClass},
-                (Object proxy, Method m, Object[] arguments) -> null);
-    
-        
-        Field field = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-        field.setAccessible(true);
-        MethodHandles.Lookup lookup = (MethodHandles.Lookup) field.get(null);
-        Class<?> declaringClazz = method.getDeclaringClass();
-        
-        MethodHandle handle = lookup.unreflectSpecial(method, declaringClazz)
-        .bindTo(proxyInstance);
+                new Class[] {interfaceClass}, (Object proxy, Method m, Object[] arguments) -> {
+
+            MethodType methodType;
+            if (argument == null) {
+                methodType = MethodType.methodType(method.getReturnType());
+            } else {
+                methodType = MethodType.methodType(method.getReturnType(), String.class);
+            }
+
+            MethodHandle handle = MethodHandles.lookup()
+                    .findSpecial(interfaceClass, method.getName(), methodType, interfaceClass)
+                    .bindTo(proxy);
+
+            if (argument == null) {
+                return handle.invokeWithArguments();
+            } else {
+                return handle.invokeWithArguments(argument);
+            }
+        });
+
 
         if (argument == null) {
-            return handle.invokeWithArguments();
+            return method.invoke(proxyInstance);
         } else {
-            return handle.invokeWithArguments(argument);
+            return method.invoke(proxyInstance, argument);
         }
     }
 
