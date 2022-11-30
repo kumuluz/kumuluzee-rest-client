@@ -24,6 +24,7 @@ import com.kumuluz.ee.rest.client.mp.providers.IncomingHeadersInterceptor;
 import com.kumuluz.ee.rest.client.mp.util.BeanParamProcessorUtil;
 import com.kumuluz.ee.rest.client.mp.util.ClientHeaderParamUtil;
 import com.kumuluz.ee.rest.client.mp.util.DefaultExecutorServiceUtil;
+import com.kumuluz.ee.rest.client.mp.util.FormParamsUtil;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.annotation.RegisterClientHeaders;
@@ -185,25 +186,20 @@ public class RestClientInvoker implements InvocationHandler {
         for (Map.Entry<String, Object> entry : paramInfo.getCookieParameterValues().entrySet()) {
             request = request.cookie(entry.getKey(), (String) entry.getValue());
         }
+        
+        if (paramInfo.hasFormDataParams() && paramInfo.hasFormDataMultipartParams()) {
+            throw new IllegalStateException("Both @FormParam and @FormDataParam are present in method arguments!");
+        }
 
         Invocation invocation;
         if (paramInfo.getPayload() != null) {
             invocation = request.build(httpMethod, Entity.entity(paramInfo.getPayload(), payloadType));
-        } else if (!paramInfo.getFormDataParameterValues().isEmpty()) {
-            FormDataMultiPart multiPart = new FormDataMultiPart();
-
-            paramInfo.getFormDataParameterValues().forEach((name, val) -> {
-                if (val instanceof String) {
-                    multiPart.field(name, (String) val);
-                } else if (val instanceof BodyPart) {
-                    multiPart.bodyPart((BodyPart) val);
-                }
-            });
-
-            MediaType mediaType = MediaType.MULTIPART_FORM_DATA_TYPE;
-            mediaType = Boundary.addBoundary(mediaType);
-
-            invocation = request.build(httpMethod, Entity.entity(multiPart, mediaType));
+        } else if (paramInfo.hasFormDataMultipartParams()) {
+            Entity<?> entity = FormParamsUtil.processMultipartFormParams(paramInfo.getFormDataMultipartParameterValues());
+            invocation = request.build(httpMethod, entity);
+        } else if (paramInfo.hasFormDataParams()) {
+            Entity<?> entity = FormParamsUtil.processUrlEncodedFormParams(paramInfo.getFormDataParameterValues());
+            invocation = request.build(httpMethod, entity);
         } else {
             invocation = request.build(httpMethod);
         }
@@ -418,7 +414,7 @@ public class RestClientInvoker implements InvocationHandler {
                     jaxRSAnnotationFound = true;
                 }
                 if (FormDataParam.class.equals(annotation.annotationType())) {
-                    result.addFormDataParameter(((FormDataParam) annotation).value(), args[paramIndex]);
+                    result.addFormDataMultipartParameter(((FormDataParam) annotation).value(), args[paramIndex]);
                     jaxRSAnnotationFound = true;
                 }
                 if (FormParam.class.equals(annotation.annotationType())) {

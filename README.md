@@ -300,6 +300,14 @@ the `RestClientBuilderListener` implementations are called when a new builder is
 implementations are called when the _build_ method is called on the builder. The latter also exposes the service
 interface class.
 
+### Form parameters content type
+
+Rest client will automatically set value of  `Content-Type` header to corresponding values if method contains any of the following arguments:
+* `@FormParam`: `application/x-www-urlencoded`
+* `@FormDataParam`: `multipart/form-data`
+
+A method cannot contain both type of parameters and will throw `IllegalStateException` if it does.
+
 ## Known issues
 
 ### 401 response status throwing ProcessingException
