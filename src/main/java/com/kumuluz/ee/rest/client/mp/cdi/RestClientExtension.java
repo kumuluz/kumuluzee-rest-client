@@ -40,13 +40,13 @@ import java.util.Set;
  */
 public class RestClientExtension implements Extension {
 
-    private Set<AnnotatedType> classes;
+    private final Set<AnnotatedType<?>> classes;
 
     public RestClientExtension() {
         this.classes = new HashSet<>();
     }
 
-    public <T> void processAnnotatedType(@Observes @WithAnnotations(RegisterRestClient.class) ProcessAnnotatedType<T> anType, BeanManager beanManager) {
+    public <T> void processAnnotatedType(@Observes @WithAnnotations(RegisterRestClient.class) ProcessAnnotatedType<T> anType) {
         Class<T> typeDef = anType.getAnnotatedType().getJavaClass();
 
         if (!typeDef.isInterface()) {
@@ -57,15 +57,15 @@ public class RestClientExtension implements Extension {
         anType.veto();
     }
 
-    public void afterBean(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager) {
-        for (AnnotatedType anType : this.classes) {
+    public void afterBean(@Observes AfterBeanDiscovery afterBeanDiscovery) {
+        for (AnnotatedType<?> anType : this.classes) {
 
             Class<? extends Annotation> scopeClass = resolveScope(anType.getJavaClass());
             afterBeanDiscovery.addBean(new InvokerDelegateBean(anType.getJavaClass(), scopeClass));
         }
     }
 
-    private void addAnnotatedType(AnnotatedType annotatedType) {
+    private void addAnnotatedType(AnnotatedType<?> annotatedType) {
         if (this.classes.stream().map(AnnotatedType::getJavaClass).anyMatch(annotatedType.getJavaClass()::equals)) {
             return;
         }
@@ -73,13 +73,14 @@ public class RestClientExtension implements Extension {
         this.classes.add(annotatedType);
     }
 
-    private Class<? extends Annotation> resolveScope(Class interfaceClass) {
+    private Class<? extends Annotation> resolveScope(Class<?> interfaceClass) {
 
         Optional<String> scopeConfig = RegistrationConfigUtil.getConfigurationParameter(interfaceClass, "scope",
                 String.class, true);
 
         if (scopeConfig.isPresent()) {
             try {
+                //noinspection unchecked
                 return (Class<? extends Annotation>) Class.forName(scopeConfig.get());
             } catch (ClassNotFoundException e) {
                 return Dependent.class;
